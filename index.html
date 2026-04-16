@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlgoLens — LCS Visualizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #050509;
+    --surface: rgba(45,212,191,0.03);
+    --border: rgba(45,212,191,0.08);
+    --purple: #2dd4bf;
+    --blue: #818cf8;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --text: #eef2f7;
+    --muted: #5a6070;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-display);
+    background: var(--bg);
+    background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(45,212,191,0.07), transparent);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ═══ CURSOR BACKGROUND ═══ */
+  #cursor-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* ═══ PAGE WRAPPER ═══ */
+  .page { position: relative; z-index: 1; }
+  #page-visualizer { display: block; }
+  #page-learn { display: none; }
+
+  /* ═══ TOP NAV ═══ */
+  .topnav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,5,9,0.8);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topnav .logo {
+    font-size: 1.3rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .topnav .logo span {
+    font-weight: 400;
+    opacity: 0.5;
+    -webkit-text-fill-color: rgba(232,232,240,0.4);
+  }
+
+  .learn-btn {
+    background: linear-gradient(135deg, rgba(45,212,191,0.15), rgba(129,140,248,0.15));
+    border: 1px solid rgba(45,212,191,0.35);
+    color: var(--purple);
+    border-radius: 10px;
+    padding: 8px 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.25s;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .learn-btn:hover {
+    background: linear-gradient(135deg, rgba(45,212,191,0.28), rgba(129,140,248,0.2));
+    border-color: rgba(45,212,191,0.7);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(45,212,191,0.25);
+  }
+
+  /* ═══ MAIN CONTENT ═══ */
+  .container { max-width: 1140px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* ═══ HERO ═══ */
+  .hero {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding-top: 1rem;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(45,212,191,0.12);
+    color: var(--purple);
+    border: 1px solid rgba(45,212,191,0.3);
+    border-radius: 20px;
+    font-size: 0.7rem;
+    padding: 4px 14px;
+    margin-bottom: 1rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .hero h1 {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--purple), var(--blue) 50%, var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-family: var(--font-mono);
+  }
+
+  /* ═══ CARD ═══ */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(8px);
+  }
+
+  .card h2 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--purple);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* ═══ SAMPLES ═══ */
+  .samples-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem; }
+
+  .sample-btn {
+    background: rgba(129,140,248,0.07);
+    border: 1px solid rgba(129,140,248,0.25);
+    color: var(--blue);
+    border-radius: 10px;
+    padding: 9px 16px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .sample-btn:hover {
+    background: rgba(129,140,248,0.16);
+    border-color: rgba(129,140,248,0.55);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(129,140,248,0.15);
+  }
+
+  .sample-btn .label { font-family: var(--font-display); font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .sample-btn .strings { color: #a5b4fc; font-weight: 400; }
+
+  /* ═══ INPUT ROW ═══ */
+  .input-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .input-group { flex: 1; min-width: 140px; }
+
+  .input-group label {
+    display: block;
+    font-size: 0.7rem;
+    color: #666;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+
+  .input-group input {
+    width: 100%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-size: 1rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-group input:focus {
+    border-color: rgba(45,212,191,0.5);
+    box-shadow: 0 0 0 3px rgba(45,212,191,0.1);
+  }
+
+  .run-btn {
+    background: linear-gradient(135deg, #0d9488, #4338ca);
+    border: none;
+    color: white;
+    border-radius: 10px;
+    padding: 11px 28px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  .run-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(13,148,136,0.45);
+  }
+
+  /* ═══ SPEED + CONTROLS ═══ */
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .speed-row label { font-size: 0.75rem; color: #666; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .speed-row input[type=range] { flex: 1; accent-color: var(--purple); }
+  .speed-val { font-size: 0.78rem; color: var(--purple); min-width: 40px; text-align: right; font-family: var(--font-mono); }
+
+  .controls-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+  .ctrl-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+
+  .ctrl-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+  .ctrl-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .ctrl-btn.prev-btn {
+    background: rgba(251,191,36,0.08);
+    border-color: rgba(251,191,36,0.25);
+    color: var(--amber);
+  }
+  .ctrl-btn.prev-btn:hover:not(:disabled) {
+    background: rgba(251,191,36,0.18);
+    border-color: rgba(251,191,36,0.5);
+  }
+
+  /* ═══ STEP COUNTER ═══ */
+  .step-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin-left: auto;
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  .step-counter .cur { color: var(--purple); font-weight: 700; }
+
+  /* ═══ RESULT BAR ═══ */
+  .result-bar {
+    background: rgba(74,222,128,0.07);
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 14px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .result-bar.hidden { display: none !important; }
+
+  .result-item { display: flex; flex-direction: column; gap: 2px; }
+  .result-item .r-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+  .result-item .r-val { font-size: 1.15rem; font-weight: 700; color: var(--green); font-family: var(--font-mono); }
+
+  /* ═══ MATRICES ═══ */
+  .matrices-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 860px) { .matrices-wrap { grid-template-columns: 1fr; } }
+
+  .matrix-card {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.3rem;
+    overflow-x: auto;
+  }
+
+  .matrix-card h3 {
+    font-size: 0.72rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+  /* DP Table */
+  table.dp-table { border-collapse: separate; border-spacing: 3px; font-size: 0.8rem; }
+  table.dp-table td, table.dp-table th {
+    width: 34px; height: 34px; text-align: center; vertical-align: middle;
+    border-radius: 6px; font-family: var(--font-mono);
+    transition: background 0.3s, color 0.3s, transform 0.2s;
+  }
+  table.dp-table th { background: rgba(255,255,255,0.06); color: #777; font-weight: 700; font-size: 0.85rem; }
+
+  .cell-empty  { background: rgba(255,255,255,0.025); color: #444; }
+  .cell-zero   { background: rgba(255,255,255,0.04); color: #555; }
+  .cell-filled { background: rgba(129,140,248,0.14); color: #93c5fd; font-weight: 700; }
+  .cell-match  { background: rgba(74,222,128,0.2); color: var(--green); font-weight: 700; }
+  .cell-active { background: rgba(45,212,191,0.32); color: #99f6e4; font-weight: 700; transform: scale(1.14); z-index: 2; position: relative; }
+  .cell-path   { background: rgba(251,191,36,0.22); color: var(--amber); font-weight: 700; }
+
+  /* Arrow Table */
+  table.arrow-table { border-collapse: separate; border-spacing: 3px; font-size: 0.88rem; }
+  table.arrow-table td, table.arrow-table th {
+    width: 34px; height: 34px; text-align: center; vertical-align: middle;
+    border-radius: 6px; font-family: var(--font-mono);
+    transition: background 0.3s, color 0.3s;
+  }
+  table.arrow-table th { background: rgba(255,255,255,0.06); color: #777; font-weight: 700; font-size: 0.85rem; }
+
+  .arr-empty  { background: rgba(255,255,255,0.025); color: #444; font-size: 0.7rem; }
+  .arr-diag   { background: rgba(74,222,128,0.18); color: var(--green); font-size: 1.05rem; font-weight: 700; }
+  .arr-up     { background: rgba(129,140,248,0.12); color: var(--blue); font-size: 0.95rem; }
+  .arr-left   { background: rgba(45,212,191,0.12); color: var(--purple); font-size: 0.95rem; }
+  .arr-active { outline: 2px solid var(--purple); transform: scale(1.14); z-index: 2; position: relative; }
+  .arr-path   { background: rgba(251,191,36,0.22); color: var(--amber); font-size: 0.95rem; }
+
+  /* Step Info */
+  .step-info {
+    background: rgba(255,255,255,0.035);
+    border-radius: 10px;
+    padding: 0.8rem 1.1rem;
+    font-size: 0.82rem;
+    color: #bbb;
+    min-height: 42px;
+    margin-top: 1rem;
+    border-left: 3px solid var(--purple);
+    font-family: var(--font-mono);
+  }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: #666; }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* Complexity */
+  .complexity-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
+  .complexity-badge {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    color: #bbb;
+  }
+  .complexity-badge span { color: var(--purple); font-weight: 700; font-family: var(--font-mono); }
+
+  /* ═══════════════════════════════════
+     LEARN PAGE
+  ═══════════════════════════════════ */
+  .learn-header {
+    padding: 2.5rem 2rem 1.5rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .back-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: #aaa;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2rem;
+  }
+
+  .back-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+
+  .learn-hero {
+    margin-bottom: 2.5rem;
+  }
+
+  .learn-hero .badge2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(129,140,248,0.1);
+    color: var(--blue);
+    border: 1px solid rgba(129,140,248,0.3);
+    border-radius: 20px;
+    font-size: 0.68rem;
+    padding: 4px 14px;
+    margin-bottom: 1rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .learn-hero h1 {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+    line-height: 1.1;
+  }
+
+  .learn-hero p {
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.7;
+    max-width: 620px;
+  }
+
+  .learn-body { max-width: 900px; margin: 0 auto; padding: 0 2rem 4rem; }
+
+  .learn-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(8px);
+  }
+
+  .learn-section h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sec-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .learn-section p {
+    color: #bbb;
+    font-size: 0.92rem;
+    line-height: 1.75;
+    margin-bottom: 1rem;
+  }
+
+  .learn-section p:last-child { margin-bottom: 0; }
+
+  /* Inline code */
+  code {
+    background: rgba(45,212,191,0.12);
+    color: var(--purple);
+    border-radius: 5px;
+    padding: 2px 7px;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+
+  /* Recurrence block */
+  .recurrence {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(45,212,191,0.2);
+    border-radius: 12px;
+    padding: 1.3rem 1.5rem;
+    margin: 1.2rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: #ddd;
+    line-height: 1.9;
+  }
+
+  .recurrence .hi { color: var(--purple); font-weight: 700; }
+  .recurrence .gr { color: var(--green); }
+  .recurrence .bl { color: var(--blue); }
+  .recurrence .am { color: var(--amber); }
+
+  /* Steps list */
+  .algo-steps { list-style: none; counter-reset: step; margin: 1rem 0; }
+  .algo-steps li {
+    counter-increment: step;
+    position: relative;
+    padding-left: 2.8rem;
+    margin-bottom: 0.9rem;
+    color: #bbb;
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+  .algo-steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 0;
+    width: 26px; height: 26px;
+    background: linear-gradient(135deg, rgba(45,212,191,0.25), rgba(129,140,248,0.15));
+    border: 1px solid rgba(45,212,191,0.3);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--purple);
+    font-family: var(--font-mono);
+    line-height: 26px;
+    text-align: center;
+  }
+
+  /* Code block */
+  .code-block {
+    background: #03050c;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    overflow: hidden;
+    margin: 1.2rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 1.2rem;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .code-lang {
+    font-size: 0.65rem;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+
+  .code-dots { display: flex; gap: 6px; }
+  .code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+
+  .code-body { padding: 1.2rem 1.5rem; line-height: 2; overflow-x: auto; }
+  .code-body .kw { color: #22d3ee; }
+  .code-body .fn { color: #a5b4fc; }
+  .code-body .str { color: #86efac; }
+  .code-body .cm { color: #4b5563; }
+  .code-body .nm { color: #fbbf24; }
+  .code-body .op { color: #94a3b8; }
+
+  /* Complexity table */
+  .complexity-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .complexity-table th {
+    background: rgba(255,255,255,0.05);
+    color: #888;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 16px;
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .complexity-table td {
+    padding: 10px 16px;
+    color: #bbb;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+  }
+
+  .complexity-table tr:last-child td { border-bottom: none; }
+  .complexity-table td:first-child { color: var(--text); font-weight: 600; font-family: var(--font-display); }
+  .complexity-table .hi-cell { color: var(--purple); font-weight: 700; }
+
+  /* Applications grid */
+  .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 1rem; }
+
+  .app-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem;
+    transition: all 0.2s;
+  }
+
+  .app-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); transform: translateY(-2px); }
+
+  .app-card .app-icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+  .app-card .app-name { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+  .app-card .app-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+  /* Variants */
+  .variants-list { list-style: none; margin-top: 1rem; }
+  .variants-list li {
+    display: flex;
+    gap: 12px;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.88rem;
+    color: #bbb;
+    line-height: 1.6;
+  }
+  .variants-list li:last-child { border-bottom: none; }
+  .variants-list .vname { color: var(--blue); font-weight: 700; min-width: 170px; font-family: var(--font-mono); font-size: 0.8rem; }
+
+  /* Insight box */
+  .insight {
+    background: rgba(74,222,128,0.06);
+    border: 1px solid rgba(74,222,128,0.2);
+    border-radius: 12px;
+    padding: 1rem 1.3rem;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #9de8c7;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.6;
+  }
+
+  .insight .ins-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+</style>
+</head>
+<body>
+
+<!-- Interactive cursor canvas -->
+<canvas id="cursor-canvas"></canvas>
+
+<!-- ═══ TOP NAV ═══ -->
+<nav class="topnav">
+  <div class="logo" onclick="showVisualizer()" style="cursor:pointer;">AlgoLens</div>
+  <button class="learn-btn" onclick="showLearn()">
+    <span>📖</span> Learn LCS
+  </button>
+</nav>
+
+<!-- ═══════════════ VISUALIZER PAGE ═══════════════ -->
+<div id="page-visualizer" class="page">
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">✦ Algorithm Visualizer</div>
+    <h1>Longest Common<br>Subsequence</h1>
+    <p>// step-by-step DP table · arrow tracing · path highlight</p>
+  </div>
+
+  <!-- SAMPLES -->
+  <div class="card">
+    <h2>⚡ Quick Samples</h2>
+    <div class="samples-grid" id="samplesGrid"></div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="card">
+    <h2>✏️ Enter Strings</h2>
+    <div class="input-row">
+      <div class="input-group">
+        <label>String X</label>
+        <input type="text" id="strX" maxlength="14" placeholder="ABCBDAB">
+      </div>
+      <div class="input-group">
+        <label>String Y</label>
+        <input type="text" id="strY" maxlength="14" placeholder="BDCAB">
+      </div>
+      <button class="run-btn" onclick="startVisualization()">▶ Visualize</button>
+    </div>
+    <div class="speed-row">
+      <label>Speed</label>
+      <input type="range" id="speedSlider" min="50" max="900" value="400" step="50">
+      <div class="speed-val" id="speedLabel">400ms</div>
+    </div>
+    <div class="controls-row" style="margin-top:12px;">
+      <button class="ctrl-btn" id="btnPause" onclick="togglePause()" disabled>⏸ Pause</button>
+      <button class="ctrl-btn" id="btnPrev"  onclick="stepBackward()" disabled title="Previous step">◀ Prev</button>
+      <button class="ctrl-btn" id="btnStep"  onclick="stepForward()"  disabled>⏭ Next</button>
+      <button class="ctrl-btn" id="btnReset" onclick="resetAll()"     disabled>↺ Reset</button>
+      <div class="step-counter" id="stepCounter" style="display:none;">
+        Step <span class="cur" id="stepCur">0</span> / <span id="stepTotal">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-bar hidden" id="resultBar">
+    <div class="result-item"><div class="r-label">LCS Length</div><div class="r-val" id="resLen">-</div></div>
+    <div class="result-item"><div class="r-label">LCS String</div><div class="r-val" id="resStr">-</div></div>
+    <div class="result-item"><div class="r-label">|X|</div><div class="r-val" id="resM">-</div></div>
+    <div class="result-item"><div class="r-label">|Y|</div><div class="r-val" id="resN">-</div></div>
+    <div class="result-item"><div class="r-label">Cells filled</div><div class="r-val" id="resCells">-</div></div>
+  </div>
+
+  <!-- MATRICES -->
+  <div class="matrices-wrap" id="matricesWrap" style="display:none;">
+    <div class="matrix-card">
+      <h3><span class="dot" style="background:var(--blue);"></span>DP Table — cell values</h3>
+      <div id="dpTableWrap"></div>
+      <div class="step-info" id="stepInfoDp">Press ▶ Visualize to begin</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(45,212,191,0.3);"></div>Current</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(74,222,128,0.2);"></div>Match</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(129,140,248,0.14);"></div>No match</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(251,191,36,0.22);"></div>LCS path</div>
+      </div>
+    </div>
+    <div class="matrix-card">
+      <h3><span class="dot" style="background:var(--green);"></span>Arrow Matrix — direction trace</h3>
+      <div id="arrTableWrap"></div>
+      <div class="step-info" id="stepInfoArr">Arrows appear as cells are computed</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(74,222,128,0.2);"></div>↖ Match</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(129,140,248,0.12);"></div>↑ Up</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(45,212,191,0.12);"></div>← Left</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(251,191,36,0.22);"></div>LCS path</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLEXITY -->
+  <div style="display:none;" id="complexitySection">
+    <div class="card">
+      <h2>📊 Complexity</h2>
+      <div class="complexity-row">
+        <div class="complexity-badge">Time: <span>O(m × n)</span></div>
+        <div class="complexity-badge">Space: <span>O(m × n)</span></div>
+        <div class="complexity-badge">Backtrack: <span>O(m + n)</span></div>
+        <div class="complexity-badge">This run: <span id="thisRunCells">—</span> cells</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div><!-- end visualizer -->
+
+
+<!-- ═══════════════ LEARN PAGE ═══════════════ -->
+<div id="page-learn" class="page" style="display:none;">
+
+  <div class="learn-header">
+    <button class="back-btn" onclick="showVisualizer()">← Back to Visualizer</button>
+
+    <div class="learn-hero">
+      <div class="badge2">Reference Guide</div>
+      <h1>Longest Common<br>Subsequence</h1>
+      <p>A complete reference — from intuition to code, complexity to real-world applications.</p>
+    </div>
+  </div>
+
+  <div class="learn-body">
+
+    <!-- WHAT IS LCS -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(129,140,248,0.12);border:1px solid rgba(129,140,248,0.25);">🔍</div>
+        What is LCS?
+      </h2>
+      <p>The <strong style="color:var(--text);">Longest Common Subsequence (LCS)</strong> problem asks: given two sequences <code>X</code> and <code>Y</code>, find the longest sequence that appears in both — but the characters don't have to be contiguous.</p>
+      <p>A <em>subsequence</em> is formed by deleting some elements from the original without changing the relative order. For example, <code>ACE</code> is a subsequence of <code>ABCDE</code>.</p>
+      <div class="recurrence">
+        <span class="bl">X</span> = A <span class="hi">B</span> C <span class="hi">B</span> D <span class="hi">A</span> B<br>
+        <span class="bl">Y</span> = <span class="hi">B</span> D C <span class="hi">A</span> B A<br>
+        <span class="gr">LCS</span> = <span class="am">B C B A</span> &nbsp;(length <span class="am">4</span>)
+      </div>
+      <p>This is different from the <em>Longest Common Substring</em> problem, where characters must be contiguous. LCS is more flexible and is a core problem in computer science.</p>
+      <div class="insight">
+        <span class="ins-icon">💡</span>
+        LCS is not always unique — multiple sequences of the same maximum length can exist. The algorithm finds one of them.
+      </div>
+    </div>
+
+    <!-- ALGORITHM -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.25);">🧠</div>
+        The Algorithm — Dynamic Programming
+      </h2>
+      <p>LCS is solved optimally using <strong style="color:var(--text);">bottom-up dynamic programming</strong>. We build a 2D table <code>dp[i][j]</code> where each cell stores the LCS length of the prefixes <code>X[1..i]</code> and <code>Y[1..j]</code>.</p>
+      <ul class="algo-steps">
+        <li>Initialize a <code>(m+1) × (n+1)</code> table filled with 0. The extra row/column represents the empty prefix (ε).</li>
+        <li>For each pair <code>(i, j)</code>, check if <code>X[i] == Y[j]</code>.</li>
+        <li>If they match: <code>dp[i][j] = dp[i-1][j-1] + 1</code> — extend the diagonal subsequence.</li>
+        <li>If they don't match: <code>dp[i][j] = max(dp[i-1][j], dp[i][j-1])</code> — take the best from above or left.</li>
+        <li>Record an arrow at each cell (↖, ↑, ←) for backtracking.</li>
+        <li>After filling the table, backtrack from <code>dp[m][n]</code> following arrows to reconstruct the LCS string.</li>
+      </ul>
+
+      <p style="margin-top:1.2rem;font-weight:700;color:var(--text);font-size:0.9rem;">Recurrence Relation</p>
+      <div class="recurrence">
+        <span class="cm">// Base cases</span><br>
+        <span class="hi">dp</span>[i][0] <span class="op">=</span> <span class="nm">0</span>, &nbsp;<span class="hi">dp</span>[0][j] <span class="op">=</span> <span class="nm">0</span><br><br>
+        <span class="cm">// If characters match</span><br>
+        <span class="kw">if</span> X[i] <span class="op">==</span> Y[j]:<br>
+        &nbsp;&nbsp;<span class="hi">dp</span>[i][j] <span class="op">=</span> <span class="hi">dp</span>[i<span class="op">-</span><span class="nm">1</span>][j<span class="op">-</span><span class="nm">1</span>] <span class="op">+</span> <span class="nm">1</span><br><br>
+        <span class="cm">// If characters don't match</span><br>
+        <span class="kw">else</span>:<br>
+        &nbsp;&nbsp;<span class="hi">dp</span>[i][j] <span class="op">=</span> <span class="gr">max</span>(<span class="hi">dp</span>[i<span class="op">-</span><span class="nm">1</span>][j], <span class="hi">dp</span>[i][j<span class="op">-</span><span class="nm">1</span>])
+      </div>
+    </div>
+
+    <!-- CODE -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);">💻</div>
+        Code Implementations
+      </h2>
+      <p>Here are clean implementations in Python and JavaScript.</p>
+
+      <!-- Python -->
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span style="background:#ff5f57;"></span>
+            <span style="background:#ffbd2e;"></span>
+            <span style="background:#28ca41;"></span>
+          </div>
+          <div class="code-lang">Python</div>
+        </div>
+        <pre class="code-body"><span class="kw">def</span> <span class="fn">lcs</span>(X, Y):
+    m, n <span class="op">=</span> <span class="fn">len</span>(X), <span class="fn">len</span>(Y)
+
+    <span class="cm"># Build DP table</span>
+    dp <span class="op">=</span> [[<span class="nm">0</span>] <span class="op">*</span> (n <span class="op">+</span> <span class="nm">1</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(m <span class="op">+</span> <span class="nm">1</span>)]
+
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="nm">1</span>, m <span class="op">+</span> <span class="nm">1</span>):
+        <span class="kw">for</span> j <span class="kw">in</span> <span class="fn">range</span>(<span class="nm">1</span>, n <span class="op">+</span> <span class="nm">1</span>):
+            <span class="kw">if</span> X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">==</span> Y[j<span class="op">-</span><span class="nm">1</span>]:
+                dp[i][j] <span class="op">=</span> dp[i<span class="op">-</span><span class="nm">1</span>][j<span class="op">-</span><span class="nm">1</span>] <span class="op">+</span> <span class="nm">1</span>
+            <span class="kw">else</span>:
+                dp[i][j] <span class="op">=</span> <span class="fn">max</span>(dp[i<span class="op">-</span><span class="nm">1</span>][j], dp[i][j<span class="op">-</span><span class="nm">1</span>])
+
+    <span class="cm"># Backtrack to find the LCS string</span>
+    result, i, j <span class="op">=</span> [], m, n
+    <span class="kw">while</span> i <span class="op">></span> <span class="nm">0</span> <span class="kw">and</span> j <span class="op">></span> <span class="nm">0</span>:
+        <span class="kw">if</span> X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">==</span> Y[j<span class="op">-</span><span class="nm">1</span>]:
+            result.<span class="fn">append</span>(X[i<span class="op">-</span><span class="nm">1</span>])
+            i <span class="op">-=</span> <span class="nm">1</span>; j <span class="op">-=</span> <span class="nm">1</span>
+        <span class="kw">elif</span> dp[i<span class="op">-</span><span class="nm">1</span>][j] <span class="op">>=</span> dp[i][j<span class="op">-</span><span class="nm">1</span>]:
+            i <span class="op">-=</span> <span class="nm">1</span>
+        <span class="kw">else</span>:
+            j <span class="op">-=</span> <span class="nm">1</span>
+
+    <span class="kw">return</span> dp[m][n], <span class="str">''</span>.<span class="fn">join</span>(<span class="fn">reversed</span>(result))
+
+<span class="cm"># Example</span>
+length, seq <span class="op">=</span> <span class="fn">lcs</span>(<span class="str">"ABCBDAB"</span>, <span class="str">"BDCABA"</span>)
+<span class="fn">print</span>(length, seq)  <span class="cm"># 4  BCBA</span></pre>
+      </div>
+
+      <!-- JavaScript -->
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span style="background:#ff5f57;"></span>
+            <span style="background:#ffbd2e;"></span>
+            <span style="background:#28ca41;"></span>
+          </div>
+          <div class="code-lang">JavaScript</div>
+        </div>
+        <pre class="code-body"><span class="kw">function</span> <span class="fn">lcs</span>(X, Y) {
+  <span class="kw">const</span> m <span class="op">=</span> X.length, n <span class="op">=</span> Y.length;
+  <span class="kw">const</span> dp <span class="op">=</span> Array.<span class="fn">from</span>({length: m<span class="op">+</span><span class="nm">1</span>},
+               () <span class="op">=></span> <span class="kw">new</span> Array(n<span class="op">+</span><span class="nm">1</span>).<span class="fn">fill</span>(<span class="nm">0</span>));
+
+  <span class="kw">for</span> (<span class="kw">let</span> i <span class="op">=</span> <span class="nm">1</span>; i <span class="op"><=</span> m; i++) {
+    <span class="kw">for</span> (<span class="kw">let</span> j <span class="op">=</span> <span class="nm">1</span>; j <span class="op"><=</span> n; j++) {
+      <span class="kw">if</span> (X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">===</span> Y[j<span class="op">-</span><span class="nm">1</span>]) {
+        dp[i][j] <span class="op">=</span> dp[i<span class="op">-</span><span class="nm">1</span>][j<span class="op">-</span><span class="nm">1</span>] <span class="op">+</span> <span class="nm">1</span>;
+      } <span class="kw">else</span> {
+        dp[i][j] <span class="op">=</span> Math.<span class="fn">max</span>(dp[i<span class="op">-</span><span class="nm">1</span>][j], dp[i][j<span class="op">-</span><span class="nm">1</span>]);
+      }
+    }
+  }
+
+  <span class="cm">// Backtrack</span>
+  <span class="kw">let</span> i <span class="op">=</span> m, j <span class="op">=</span> n, lcsStr <span class="op">=</span> <span class="str">''</span>;
+  <span class="kw">while</span> (i <span class="op">></span> <span class="nm">0</span> <span class="op">&&</span> j <span class="op">></span> <span class="nm">0</span>) {
+    <span class="kw">if</span> (X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">===</span> Y[j<span class="op">-</span><span class="nm">1</span>]) { lcsStr <span class="op">=</span> X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">+</span> lcsStr; i--; j--; }
+    <span class="kw">else if</span> (dp[i<span class="op">-</span><span class="nm">1</span>][j] <span class="op">>=</span> dp[i][j<span class="op">-</span><span class="nm">1</span>]) i--;
+    <span class="kw">else</span> j--;
+  }
+  <span class="kw">return</span> { length: dp[m][n], sequence: lcsStr };
+}
+
+<span class="fn">lcs</span>(<span class="str">'ABCBDAB'</span>, <span class="str">'BDCABA'</span>);
+<span class="cm">// → { length: 4, sequence: 'BCBA' }</span></pre>
+      </div>
+
+      <!-- C++ -->
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span style="background:#ff5f57;"></span>
+            <span style="background:#ffbd2e;"></span>
+            <span style="background:#28ca41;"></span>
+          </div>
+          <div class="code-lang">C++</div>
+        </div>
+        <pre class="code-body"><span class="kw">#include</span> <span class="str">&lt;iostream&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;vector&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;algorithm&gt;</span>
+<span class="kw">using namespace</span> std;
+
+<span class="fn">pair</span><span class="op">&lt;</span><span class="kw">int</span>, string<span class="op">&gt;</span> <span class="fn">lcs</span>(<span class="kw">const</span> string<span class="op">&amp;</span> X, <span class="kw">const</span> string<span class="op">&amp;</span> Y) {
+    <span class="kw">int</span> m <span class="op">=</span> X.<span class="fn">size</span>(), n <span class="op">=</span> Y.<span class="fn">size</span>();
+
+    <span class="cm">// Build DP table</span>
+    vector<span class="op">&lt;</span>vector<span class="op">&lt;</span><span class="kw">int</span><span class="op">&gt;&gt;</span> dp(m <span class="op">+</span> <span class="nm">1</span>, vector<span class="op">&lt;</span><span class="kw">int</span><span class="op">&gt;</span>(n <span class="op">+</span> <span class="nm">1</span>, <span class="nm">0</span>));
+
+    <span class="kw">for</span> (<span class="kw">int</span> i <span class="op">=</span> <span class="nm">1</span>; i <span class="op">&lt;=</span> m; i++) {
+        <span class="kw">for</span> (<span class="kw">int</span> j <span class="op">=</span> <span class="nm">1</span>; j <span class="op">&lt;=</span> n; j++) {
+            <span class="kw">if</span> (X[i <span class="op">-</span> <span class="nm">1</span>] <span class="op">==</span> Y[j <span class="op">-</span> <span class="nm">1</span>])
+                dp[i][j] <span class="op">=</span> dp[i <span class="op">-</span> <span class="nm">1</span>][j <span class="op">-</span> <span class="nm">1</span>] <span class="op">+</span> <span class="nm">1</span>;
+            <span class="kw">else</span>
+                dp[i][j] <span class="op">=</span> <span class="fn">max</span>(dp[i <span class="op">-</span> <span class="nm">1</span>][j], dp[i][j <span class="op">-</span> <span class="nm">1</span>]);
+        }
+    }
+
+    <span class="cm">// Backtrack to reconstruct the LCS string</span>
+    string result;
+    <span class="kw">int</span> i <span class="op">=</span> m, j <span class="op">=</span> n;
+    <span class="kw">while</span> (i <span class="op">&gt;</span> <span class="nm">0</span> <span class="op">&amp;&amp;</span> j <span class="op">&gt;</span> <span class="nm">0</span>) {
+        <span class="kw">if</span> (X[i <span class="op">-</span> <span class="nm">1</span>] <span class="op">==</span> Y[j <span class="op">-</span> <span class="nm">1</span>]) {
+            result <span class="op">+=</span> X[i <span class="op">-</span> <span class="nm">1</span>];
+            i--; j--;
+        } <span class="kw">else if</span> (dp[i <span class="op">-</span> <span class="nm">1</span>][j] <span class="op">&gt;=</span> dp[i][j <span class="op">-</span> <span class="nm">1</span>]) {
+            i--;
+        } <span class="kw">else</span> {
+            j--;
+        }
+    }
+    <span class="fn">reverse</span>(result.<span class="fn">begin</span>(), result.<span class="fn">end</span>());
+    <span class="kw">return</span> {dp[m][n], result};
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    string X <span class="op">=</span> <span class="str">"ABCBDAB"</span>, Y <span class="op">=</span> <span class="str">"BDCABA"</span>;
+    <span class="kw">auto</span> [len, seq] <span class="op">=</span> <span class="fn">lcs</span>(X, Y);
+    cout <span class="op">&lt;&lt;</span> len <span class="op">&lt;&lt;</span> <span class="str">" "</span> <span class="op">&lt;&lt;</span> seq <span class="op">&lt;&lt;</span> endl; <span class="cm">// 4 BCBA</span>
+}</pre>
+      </div>
+    </div>
+
+    <!-- COMPLEXITY -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);">📊</div>
+        Time & Space Complexity
+      </h2>
+      <table class="complexity-table">
+        <thead>
+          <tr><th>Operation</th><th>Complexity</th><th>Explanation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>DP Table Fill</td><td class="hi-cell">O(m × n)</td><td>Every cell computed once</td></tr>
+          <tr><td>Space (standard)</td><td class="hi-cell">O(m × n)</td><td>Full table stored for backtracking</td></tr>
+          <tr><td>Space (optimized)</td><td class="hi-cell">O(min(m, n))</td><td>Single rolling row — use shorter string as columns</td></tr>
+          <tr><td>Backtracking</td><td class="hi-cell">O(m + n)</td><td>At most m+n steps along the path</td></tr>
+          <tr><td>Hirschberg's Algorithm</td><td class="hi-cell">O(m × n) time, O(m+n) space</td><td>Full LCS string in linear space</td></tr>
+        </tbody>
+      </table>
+      <div class="insight" style="margin-top:1rem;">
+        <span class="ins-icon">💡</span>
+        If you only need the LCS <em>length</em> (not the actual string), you can reduce space to O(min(m,n)) using a <strong>single rolling row</strong> — orient the table so the shorter string defines the columns (swap X and Y if needed), then update that one row in place, carrying only the previous diagonal value in a temporary variable.
+      </div>
+    </div>
+
+    <!-- REAL WORLD -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);">🌍</div>
+        Real-World Applications
+      </h2>
+      <p>LCS is a foundational algorithm that powers many real tools you use daily:</p>
+      <div class="apps-grid">
+        <div class="app-card">
+          <div class="app-icon">🧬</div>
+          <div class="app-name">Bioinformatics</div>
+          <div class="app-desc">DNA/protein sequence alignment; finding evolutionary relationships between genomes.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">🔀</div>
+          <div class="app-name">Git / Diff</div>
+          <div class="app-desc">The <code>diff</code> tool and Git use LCS to show what changed between file versions.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">🤖</div>
+          <div class="app-name">NLP & Plagiarism</div>
+          <div class="app-desc">Measuring similarity between texts, spell checking, and detecting copied content.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">🗂️</div>
+          <div class="app-name">Version Control</div>
+          <div class="app-desc">Merging file changes without conflicts by finding common structure between revisions.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">🔍</div>
+          <div class="app-name">Edit Distance</div>
+          <div class="app-desc">LCS is deeply related to Levenshtein distance; fewer LCS matches = more edits needed.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">📝</div>
+          <div class="app-name">Spell Check</div>
+          <div class="app-desc">Fuzzy string matching in IDEs and search engines uses LCS-based similarity scores.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VARIANTS -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.25);">🔗</div>
+        Related Problems & Variants
+      </h2>
+      <ul class="variants-list">
+        <li>
+          <span class="vname">Longest Common Substring</span>
+          Characters must be contiguous. Uses DP but resets on mismatch. O(m×n) time.
+        </li>
+        <li>
+          <span class="vname">Shortest Common Supersequence</span>
+          Shortest sequence containing both X and Y. Length = m + n − LCS(X,Y).
+        </li>
+        <li>
+          <span class="vname">Longest Increasing Subsequence</span>
+          LCS of X and sorted(X). Can be solved in O(n log n) with patience sorting.
+        </li>
+        <li>
+          <span class="vname">Edit Distance (Levenshtein)</span>
+          Min edits (insert, delete, substitute) to transform X → Y. With <em>insert/delete only</em>, dist = m + n − 2×LCS. Standard Levenshtein (with substitution) is a separate DP and that formula does not apply.
+        </li>
+        <li>
+          <span class="vname">Diff / Patience Diff</span>
+          Git's <code>diff</code> algorithm finds the LCS of unique lines between two files.
+        </li>
+        <li>
+          <span class="vname">Hirschberg's Algorithm</span>
+          Computes full LCS string using only O(m+n) space via divide-and-conquer on the DP table.
+        </li>
+      </ul>
+    </div>
+
+    <!-- KEY INSIGHT -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(129,140,248,0.1);border:1px solid rgba(129,140,248,0.25);">⚗️</div>
+        Key Insight — Optimal Substructure
+      </h2>
+      <p>LCS exhibits <strong style="color:var(--text);">optimal substructure</strong>: the solution to the full problem contains optimal solutions to subproblems. This is why dynamic programming works perfectly here.</p>
+      <p>If <code>X[m] == Y[n]</code>, this character must be in the LCS — we take it and recurse on the remaining prefixes. If they differ, at least one must be excluded, and we try both options and take the maximum.</p>
+      <p>Naive recursion solves this in <strong style="color:var(--red);">O(2ⁿ)</strong> due to overlapping subproblems. DP memoizes each <code>(i,j)</code> pair, reducing it to <strong style="color:var(--green);">O(m×n)</strong> — a dramatic improvement.</p>
+      <div class="insight">
+        <span class="ins-icon">🚀</span>
+        The <strong>subproblem overlap</strong> is the key: without memoization, the same <code>lcs(i,j)</code> call is made exponentially many times. DP solves each subproblem exactly once.
+      </div>
+    </div>
+
+  </div><!-- end learn-body -->
+</div><!-- end page-learn -->
+
+<script>
+/* ══════════════════════════════════
+   CURSOR BACKGROUND
+══════════════════════════════════ */
+const canvas = document.getElementById('cursor-canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+let mouse = { x: -999, y: -999 };
+let particles = [];
+
+function resizeCanvas() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+window.addEventListener('mousemove', e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+  // Spawn particles on move
+  for (let k = 0; k < 2; k++) {
+    particles.push({
+      x: e.clientX + (Math.random() - 0.5) * 20,
+      y: e.clientY + (Math.random() - 0.5) * 20,
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: (Math.random() - 0.5) * 0.8 - 0.4,
+      life: 1,
+      decay: 0.012 + Math.random() * 0.015,
+      r: 2 + Math.random() * 4,
+      hue: 170 + Math.random() * 50, // teal-violet range
+    });
+  }
+});
+
+// Ambient floating particles
+function spawnAmbient() {
+  if (particles.length < 60) {
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -0.1 - Math.random() * 0.2,
+      life: 0.4 + Math.random() * 0.4,
+      decay: 0.003 + Math.random() * 0.005,
+      r: 1 + Math.random() * 2,
+      hue: 170 + Math.random() * 50,
+    });
+  }
+}
+
+function drawGrid() {
+  const spacing = 60;
+  ctx.strokeStyle = 'rgba(45,212,191,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += spacing) {
+    const dist = Math.abs(x - mouse.x);
+    const alpha = Math.max(0, 0.06 - dist / 2000);
+    ctx.strokeStyle = `rgba(45,212,191,${alpha})`;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += spacing) {
+    const dist = Math.abs(y - mouse.y);
+    const alpha = Math.max(0, 0.06 - dist / 2000);
+    ctx.strokeStyle = `rgba(129,140,248,${alpha})`;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  }
+}
+
+function drawCursorGlow() {
+  if (mouse.x < 0) return;
+  const grad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 200);
+  grad.addColorStop(0, 'rgba(45,212,191,0.10)');
+  grad.addColorStop(0.5, 'rgba(129,140,248,0.04)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(mouse.x, mouse.y, 200, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function animate() {
+  ctx.clearRect(0, 0, W, H);
+  drawGrid();
+  drawCursorGlow();
+  spawnAmbient();
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI * 2);
+    ctx.fillStyle = `hsla(${p.hue}, 80%, 70%, ${p.life * 0.7})`;
+    ctx.fill();
+  }
+
+  requestAnimationFrame(animate);
+}
+animate();
+
+/* ══════════════════════════════════
+   PAGE SWITCHING
+══════════════════════════════════ */
+function showLearn() {
+  document.getElementById('page-visualizer').style.display = 'none';
+  document.getElementById('page-learn').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showVisualizer() {
+  document.getElementById('page-learn').style.display = 'none';
+  document.getElementById('page-visualizer').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ══════════════════════════════════
+   LCS VISUALIZER LOGIC
+══════════════════════════════════ */
+const ALL_SAMPLES = [
+  { label:"Classic",    x:"ABCBDAB",  y:"BDCABA",   },
+  { label:"DNA",        x:"AGGTAB",   y:"GXTXAYB",  },
+  { label:"Short",      x:"ABCB",     y:"BDCAB",    },
+  { label:"Repeat",     x:"AABABAB",  y:"ABABABA",  },
+  { label:"Nums",       x:"12345678", y:"13578",    },
+  { label:"Palindrome", x:"ABCBA",    y:"AEBCB",    },
+  { label:"Disjoint",   x:"ABCD",     y:"WXYZ",     },
+  { label:"Prefix",     x:"HELLO",    y:"HELL",     },
+  { label:"Suffix",     x:"WORLD",    y:"ORLD",     },
+  { label:"Mix",        x:"STONE",    y:"LONGEST",  },
+  { label:"Tech",       x:"PYTHON",   y:"TYPHOON",  },
+  { label:"Full",       x:"ABCDEF",   y:"ABCDEF",   },
+];
+
+let X="", Y="", dp=[], arrows=[], steps=[], stepIdx=0, timer=null, paused=false, animating=false;
+// Snapshot store for going backward
+let snapshots = []; // snapshots[i] = cell state before step i was applied
+
+function pickSamples() {
+  return [...ALL_SAMPLES].sort(() => Math.random() - 0.5).slice(0, 6);
+}
+
+function buildSamples() {
+  const grid = document.getElementById('samplesGrid');
+  grid.innerHTML = '';
+  pickSamples().forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'sample-btn';
+    btn.innerHTML = `<span class="label">${s.label}</span><span class="strings">${s.x} / ${s.y}</span>`;
+    btn.onclick = () => {
+      document.getElementById('strX').value = s.x;
+      document.getElementById('strY').value = s.y;
+      startVisualization();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+document.getElementById('speedSlider').oninput = function() {
+  document.getElementById('speedLabel').textContent = this.value + 'ms';
+};
+
+function computeLCS(x, y) {
+  const m = x.length, n = y.length;
+  const dp = Array.from({length: m+1}, () => new Array(n+1).fill(0));
+  const arrows = Array.from({length: m+1}, () => new Array(n+1).fill(''));
+  const steps = [];
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (x[i-1] === y[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+        arrows[i][j] = 'diag';
+        steps.push({ i, j, match: true, val: dp[i][j], msg: `X[${i}]='${x[i-1]}' == Y[${j}]='${y[j-1]}' → match! dp[${i}][${j}] = dp[${i-1}][${j-1}]+1 = ${dp[i][j]}` });
+      } else {
+        if (dp[i-1][j] >= dp[i][j-1]) {
+          dp[i][j] = dp[i-1][j];
+          arrows[i][j] = 'up';
+          steps.push({ i, j, match: false, val: dp[i][j], msg: `X[${i}]='${x[i-1]}' ≠ Y[${j}]='${y[j-1]}' → max(↑${dp[i-1][j]}, ←${dp[i][j-1]}) = ${dp[i][j]}, arrow ↑` });
+        } else {
+          dp[i][j] = dp[i][j-1];
+          arrows[i][j] = 'left';
+          steps.push({ i, j, match: false, val: dp[i][j], msg: `X[${i}]='${x[i-1]}' ≠ Y[${j}]='${y[j-1]}' → max(↑${dp[i-1][j]}, ←${dp[i][j-1]}) = ${dp[i][j]}, arrow ←` });
+        }
+      }
+    }
+  }
+  return { dp, arrows, steps };
+}
+
+function backtrack(dp, arrows, x, y) {
+  let i = x.length, j = y.length, path = [], lcs = '';
+  while (i > 0 && j > 0) {
+    path.push([i, j]);
+    if (arrows[i][j] === 'diag') { lcs = x[i-1] + lcs; i--; j--; }
+    else if (arrows[i][j] === 'up') i--;
+    else j--;
+  }
+  return { path, lcs };
+}
+
+function buildTables() {
+  const m = X.length, n = Y.length;
+  function makeTable(id, cls, cellFn) {
+    let html = `<table class="${cls}"><tr><th></th><th>ε</th>`;
+    for (let j = 0; j < n; j++) html += `<th>${Y[j]}</th>`;
+    html += '</tr><tr><th>ε</th>';
+    for (let j = 0; j <= n; j++) html += cellFn(0, j, 'zero');
+    html += '</tr>';
+    for (let i = 1; i <= m; i++) {
+      html += `<tr><th>${X[i-1]}</th>`;
+      for (let j = 0; j <= n; j++) html += cellFn(i, j, 'empty');
+      html += '</tr>';
+    }
+    html += '</table>';
+    document.getElementById(id).innerHTML = html;
+  }
+  makeTable('dpTableWrap', 'dp-table',
+    (i, j, t) => `<td id="dp_${i}_${j}" class="cell-${t}">0</td>`);
+  makeTable('arrTableWrap', 'arrow-table',
+    (i, j, t) => `<td id="ar_${i}_${j}" class="arr-empty">—</td>`);
+  for (let j = 0; j <= n; j++) {
+    const d = document.getElementById(`dp_0_${j}`);
+    if (d) d.className = 'cell-zero';
+  }
+  snapshots = [captureState()];
+}
+
+function captureState() {
+  // Capture all dp_ and ar_ cell class+text
+  const state = {};
+  const cells = document.querySelectorAll('[id^="dp_"],[id^="ar_"]');
+  cells.forEach(c => { state[c.id] = { cls: c.className, txt: c.textContent }; });
+  return {
+    cellState: state,
+    dpInfo: document.getElementById('stepInfoDp')?.textContent || '',
+    arInfo: document.getElementById('stepInfoArr')?.textContent || '',
+  };
+}
+
+function restoreState(snap) {
+  Object.entries(snap.cellState).forEach(([id, {cls, txt}]) => {
+    const el = document.getElementById(id);
+    if (el) { el.className = cls; el.textContent = txt; }
+  });
+  document.getElementById('stepInfoDp').textContent = snap.dpInfo;
+  document.getElementById('stepInfoArr').textContent = snap.arInfo;
+}
+
+function applyStep(s) {
+  const dpCell = document.getElementById(`dp_${s.i}_${s.j}`);
+  const arCell = document.getElementById(`ar_${s.i}_${s.j}`);
+  if (!dpCell) return;
+  dpCell.className = s.match ? 'cell-active cell-match' : 'cell-active';
+  dpCell.textContent = s.val;
+  if (arCell) {
+    arCell.textContent = arrows[s.i][s.j] === 'diag' ? '↖' : arrows[s.i][s.j] === 'up' ? '↑' : '←';
+    arCell.className = arrows[s.i][s.j] === 'diag' ? 'arr-diag' : arrows[s.i][s.j] === 'up' ? 'arr-up' : 'arr-left';
+    arCell.classList.add('arr-active');
+  }
+  document.getElementById('stepInfoDp').textContent = s.msg;
+  document.getElementById('stepInfoArr').textContent = `Arrow at [${s.i}][${s.j}]: ${arrows[s.i][s.j] === 'diag' ? '↖ diagonal (match)' : arrows[s.i][s.j] === 'up' ? '↑ up' : '← left'}`;
+  setTimeout(() => {
+    dpCell.className = s.match ? 'cell-match' : 'cell-filled';
+    if (arCell) arCell.classList.remove('arr-active');
+    // Save snapshot AFTER animation settles
+  }, 320);
+}
+
+function updateCounter() {
+  const total = steps.length;
+  const cur = Math.min(stepIdx, total);
+  document.getElementById('stepCur').textContent = cur;
+  document.getElementById('stepTotal').textContent = total;
+  document.getElementById('btnPrev').disabled = stepIdx <= 0;
+}
+
+function highlightPath(path) {
+  path.forEach(([i, j]) => {
+    const d = document.getElementById(`dp_${i}_${j}`);
+    const a = document.getElementById(`ar_${i}_${j}`);
+    if (d) d.className = 'cell-path';
+    if (a) a.className = 'arr-path';
+  });
+}
+
+function startVisualization() {
+  clearTimeout(timer);
+  paused = false; animating = false;
+  X = document.getElementById('strX').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  Y = document.getElementById('strY').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!X || !Y) { alert('Please enter both strings (letters/digits only).'); return; }
+  if (X.length > 14 || Y.length > 14) { alert('Max 14 characters each for clear visualization.'); return; }
+
+  const res = computeLCS(X, Y);
+  dp = res.dp; arrows = res.arrows; steps = res.steps; stepIdx = 0;
+
+  document.getElementById('matricesWrap').style.display = 'grid';
+  document.getElementById('resultBar').classList.add('hidden');
+  document.getElementById('complexitySection').style.display = 'none';
+  document.getElementById('stepCounter').style.display = '';
+  buildTables();
+  updateCounter();
+
+  document.getElementById('btnPause').disabled = false;
+  document.getElementById('btnStep').disabled = false;
+  document.getElementById('btnReset').disabled = false;
+  document.getElementById('btnPrev').disabled = true;
+  document.getElementById('btnPause').textContent = '⏸ Pause';
+  animating = true;
+  runAnimation();
+}
+
+function runAnimation() {
+  if (!animating) return;
+  if (paused) return;
+  if (stepIdx >= steps.length) { finishAnimation(); return; }
+  // Save snapshot before applying
+  snapshots[stepIdx] = captureState();
+  applyStep(steps[stepIdx]);
+  stepIdx++;
+  updateCounter();
+  const spd = parseInt(document.getElementById('speedSlider').value);
+  timer = setTimeout(runAnimation, spd);
+}
+
+function togglePause() {
+  if (!animating && stepIdx < steps.length) { animating = true; }
+  paused = !paused;
+  document.getElementById('btnPause').textContent = paused ? '▶ Resume' : '⏸ Pause';
+  if (!paused) runAnimation();
+}
+
+function stepForward() {
+  if (stepIdx >= steps.length) { finishAnimation(); return; }
+  clearTimeout(timer);
+  paused = true;
+  animating = true;
+  document.getElementById('btnPause').textContent = '▶ Resume';
+  snapshots[stepIdx] = captureState();
+  applyStep(steps[stepIdx]);
+  stepIdx++;
+  updateCounter();
+  if (stepIdx >= steps.length) setTimeout(finishAnimation, 400);
+}
+
+function stepBackward() {
+  if (stepIdx <= 0) return;
+  clearTimeout(timer);
+  paused = true;
+  animating = true;
+  document.getElementById('btnPause').textContent = '▶ Resume';
+  document.getElementById('resultBar').classList.add('hidden');
+  document.getElementById('complexitySection').style.display = 'none';
+  stepIdx--;
+  const snap = snapshots[stepIdx];
+  if (snap) restoreState(snap);
+  updateCounter();
+}
+
+function finishAnimation() {
+  animating = false;
+  paused = false;
+  clearTimeout(timer);
+  document.getElementById('btnPause').textContent = '⏸ Pause';
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnStep').disabled = true;
+  const { path, lcs } = backtrack(dp, arrows, X, Y);
+  setTimeout(() => highlightPath(path), 200);
+  const m = X.length, n = Y.length;
+  document.getElementById('resLen').textContent = dp[m][n];
+  document.getElementById('resStr').textContent = lcs || '(none)';
+  document.getElementById('resM').textContent = m;
+  document.getElementById('resN').textContent = n;
+  document.getElementById('resCells').textContent = m * n;
+  document.getElementById('thisRunCells').textContent = `${m}×${n} = ${m * n}`;
+  document.getElementById('resultBar').classList.remove('hidden');
+  document.getElementById('complexitySection').style.display = 'block';
+  document.getElementById('stepInfoDp').textContent = `✅ Done! LCS = "${lcs || '(none)'}" (length ${dp[m][n]}). Gold cells = optimal path.`;
+  document.getElementById('stepInfoArr').textContent = `↖ arrows trace the LCS path. Follow gold cells from bottom-right to top-left.`;
+  updateCounter();
+}
+
+function resetAll() {
+  clearTimeout(timer);
+  paused = false; animating = false; stepIdx = 0;
+  snapshots = [];
+  document.getElementById('matricesWrap').style.display = 'none';
+  document.getElementById('resultBar').classList.add('hidden');
+  document.getElementById('complexitySection').style.display = 'none';
+  document.getElementById('stepCounter').style.display = 'none';
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnStep').disabled = true;
+  document.getElementById('btnPrev').disabled = true;
+  document.getElementById('btnReset').disabled = true;
+  document.getElementById('btnPause').textContent = '⏸ Pause';
+  document.getElementById('stepInfoDp').textContent = 'Press ▶ Visualize to begin';
+  document.getElementById('stepInfoArr').textContent = 'Arrows appear as cells are computed';
+}
+
+buildSamples();
+</script>
+</body>
+</html>
