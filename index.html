@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OceanLens — LCS Visualizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #010a14;
+    --bg-deep: #020e1c;
+    --surface: rgba(6,78,108,0.12);
+    --surface-glass: rgba(8,60,100,0.18);
+    --border: rgba(34,211,238,0.12);
+    --border-glow: rgba(34,211,238,0.3);
+    --cyan: #22d3ee;
+    --teal: #2dd4bf;
+    --seafoam: #34d399;
+    --coral: #fb923c;
+    --sand: #fcd34d;
+    --deep: #0369a1;
+    --abyss: #041e3a;
+    --purple: #818cf8;
+    --blue: #38bdf8;
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    --text: #e0f2fe;
+    --muted: #5a8a9a;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --glow-cyan: 0 0 20px rgba(34,211,238,0.25), 0 0 60px rgba(34,211,238,0.08);
+    --glow-teal: 0 0 20px rgba(45,212,191,0.2), 0 0 60px rgba(45,212,191,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  /* ═══ BODY — DEEP OCEAN ═══ */
+  body {
+    font-family: var(--font-display);
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 120% 50% at 50% -10%, rgba(6,95,168,0.35) 0%, transparent 65%),
+      radial-gradient(ellipse 80% 50% at 85% 110%, rgba(2,80,140,0.2) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 40% at 5% 90%, rgba(20,184,166,0.12) 0%, transparent 50%),
+      radial-gradient(circle 600px at 50% 50%, rgba(6,50,100,0.15) 0%, transparent 70%),
+      linear-gradient(180deg, #010a14 0%, #021526 30%, #01162a 60%, #010d1a 100%);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ═══ CAUSTIC LIGHT OVERLAY ═══ */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-conic-gradient(
+        from 0deg at 25% 30%,
+        rgba(34,211,238,0.008) 0deg 4deg,
+        transparent 4deg 12deg
+      ),
+      repeating-conic-gradient(
+        from 45deg at 75% 60%,
+        rgba(45,212,191,0.006) 0deg 3deg,
+        transparent 3deg 10deg
+      );
+    animation: caustic-shift 20s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+  }
+
+  @keyframes caustic-shift {
+    0% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+    50% { transform: scale(1.15) rotate(2deg); opacity: 0.8; }
+    100% { transform: scale(1.05) rotate(-1deg); opacity: 0.6; }
+  }
+
+  /* ═══ DECORATIVE CSS BUBBLES ═══ */
+  .ocean-bubbles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .ocean-bubbles .bubble {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 35% 35%,
+      rgba(255,255,255,0.08),
+      rgba(34,211,238,0.03) 40%,
+      rgba(34,211,238,0.01) 70%,
+      transparent 100%
+    );
+    border: 1px solid rgba(34,211,238,0.07);
+    box-shadow:
+      inset 0 0 6px rgba(255,255,255,0.03),
+      0 0 6px rgba(34,211,238,0.02);
+    animation: bubble-rise linear infinite;
+    opacity: 0;
+  }
+
+  .ocean-bubbles .bubble::before {
+    content: '';
+    position: absolute;
+    width: 30%;
+    height: 16%;
+    top: 18%;
+    left: 22%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    filter: blur(1px);
+  }
+
+  .ocean-bubbles .bubble::after {
+    content: '';
+    position: absolute;
+    width: 12%;
+    height: 10%;
+    bottom: 25%;
+    right: 20%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    filter: blur(0.5px);
+  }
+
+  @keyframes bubble-rise {
+    0% { transform: translateY(100vh) translateX(0) scale(0.3); opacity: 0; }
+    5% { opacity: 0.25; }
+    40% { opacity: 0.18; }
+    80% { opacity: 0.08; }
+    100% { transform: translateY(-120px) translateX(var(--drift)) scale(1); opacity: 0; }
+  }
+
+  .ocean-bubbles .bubble:nth-child(1)  { width: 22px; height: 22px; left: 5%;  --drift: 40px;  animation-duration: 18s; animation-delay: 0s; }
+  .ocean-bubbles .bubble:nth-child(2)  { width: 38px; height: 38px; left: 12%; --drift: -30px; animation-duration: 22s; animation-delay: 2s; }
+  .ocean-bubbles .bubble:nth-child(3)  { width: 14px; height: 14px; left: 20%; --drift: 20px;  animation-duration: 15s; animation-delay: 4s; }
+  .ocean-bubbles .bubble:nth-child(4)  { width: 50px; height: 50px; left: 30%; --drift: -50px; animation-duration: 28s; animation-delay: 1s; }
+  .ocean-bubbles .bubble:nth-child(5)  { width: 18px; height: 18px; left: 38%; --drift: 35px;  animation-duration: 16s; animation-delay: 6s; }
+  .ocean-bubbles .bubble:nth-child(6)  { width: 32px; height: 32px; left: 48%; --drift: -25px; animation-duration: 20s; animation-delay: 3s; }
+  .ocean-bubbles .bubble:nth-child(7)  { width: 42px; height: 42px; left: 55%; --drift: 45px;  animation-duration: 25s; animation-delay: 5s; }
+  .ocean-bubbles .bubble:nth-child(8)  { width: 16px; height: 16px; left: 62%; --drift: -15px; animation-duration: 14s; animation-delay: 7s; }
+  .ocean-bubbles .bubble:nth-child(9)  { width: 28px; height: 28px; left: 72%; --drift: 30px;  animation-duration: 19s; animation-delay: 0.5s; }
+  .ocean-bubbles .bubble:nth-child(10) { width: 55px; height: 55px; left: 80%; --drift: -40px; animation-duration: 30s; animation-delay: 2.5s; }
+  .ocean-bubbles .bubble:nth-child(11) { width: 20px; height: 20px; left: 88%; --drift: 25px;  animation-duration: 17s; animation-delay: 8s; }
+  .ocean-bubbles .bubble:nth-child(12) { width: 35px; height: 35px; left: 95%; --drift: -35px; animation-duration: 23s; animation-delay: 4.5s; }
+  .ocean-bubbles .bubble:nth-child(13) { width: 12px; height: 12px; left: 15%; --drift: 18px;  animation-duration: 13s; animation-delay: 9s; }
+  .ocean-bubbles .bubble:nth-child(14) { width: 45px; height: 45px; left: 42%; --drift: -55px; animation-duration: 26s; animation-delay: 1.5s; }
+  .ocean-bubbles .bubble:nth-child(15) { width: 24px; height: 24px; left: 68%; --drift: 22px;  animation-duration: 21s; animation-delay: 6.5s; }
+  .ocean-bubbles .bubble:nth-child(16) { width: 10px; height: 10px; left: 25%; --drift: -12px; animation-duration: 11s; animation-delay: 10s; }
+  .ocean-bubbles .bubble:nth-child(17) { width: 30px; height: 30px; left: 52%; --drift: 38px;  animation-duration: 24s; animation-delay: 3.5s; }
+  .ocean-bubbles .bubble:nth-child(18) { width: 15px; height: 15px; left: 78%; --drift: -20px; animation-duration: 15s; animation-delay: 7.5s; }
+  .ocean-bubbles .bubble:nth-child(19) { width: 48px; height: 48px; left: 8%;  --drift: 50px;  animation-duration: 27s; animation-delay: 0.8s; }
+  .ocean-bubbles .bubble:nth-child(20) { width: 26px; height: 26px; left: 90%; --drift: -28px; animation-duration: 18s; animation-delay: 5.5s; }
+
+  /* ═══ CURSOR BACKGROUND ═══ */
+  #cursor-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 1;
+  }
+
+  /* ═══ PAGE WRAPPER ═══ */
+  .page { position: relative; z-index: 2; }
+  #page-visualizer { display: block; }
+  #page-learn { display: none; }
+
+  /* ═══ TOP NAV — FROSTED GLASS ═══ */
+  .topnav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid rgba(34,211,238,0.1);
+    background: rgba(1,10,20,0.75);
+    backdrop-filter: blur(30px) saturate(1.4);
+    -webkit-backdrop-filter: blur(30px) saturate(1.4);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.3), 0 1px 0 rgba(34,211,238,0.06);
+  }
+
+  .topnav .logo {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #22d3ee 0%, #38bdf8 40%, #2dd4bf 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 12px rgba(34,211,238,0.3));
+    transition: filter 0.3s;
+  }
+
+  .topnav .logo:hover {
+    filter: drop-shadow(0 0 20px rgba(34,211,238,0.5));
+  }
+
+  .topnav .logo span {
+    font-weight: 400;
+    opacity: 0.5;
+    -webkit-text-fill-color: rgba(232,232,240,0.4);
+  }
+
+  .learn-btn {
+    background: linear-gradient(135deg, rgba(34,211,238,0.1), rgba(56,189,248,0.08));
+    border: 1px solid rgba(34,211,238,0.3);
+    color: var(--cyan);
+    border-radius: 12px;
+    padding: 9px 22px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .learn-btn::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(34,211,238,0.12) 60deg, transparent 120deg);
+    animation: btn-shimmer 4s linear infinite;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .learn-btn:hover::before { opacity: 1; }
+
+  @keyframes btn-shimmer {
+    to { transform: rotate(360deg); }
+  }
+
+  .learn-btn:hover {
+    background: linear-gradient(135deg, rgba(34,211,238,0.2), rgba(56,189,248,0.15));
+    border-color: rgba(34,211,238,0.6);
+    transform: translateY(-2px);
+    box-shadow: var(--glow-cyan);
+  }
+
+  /* ═══ MAIN CONTENT ═══ */
+  .container { max-width: 1140px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* ═══ HERO — UNDERWATER GLOW ═══ */
+  .hero {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-top: 1.5rem;
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 300px;
+    background: radial-gradient(ellipse, rgba(34,211,238,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(34,211,238,0.06);
+    color: var(--cyan);
+    border: 1px solid rgba(34,211,238,0.2);
+    border-radius: 24px;
+    font-size: 0.68rem;
+    padding: 5px 16px;
+    margin-bottom: 1.2rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    backdrop-filter: blur(10px);
+    animation: badge-glow 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes badge-glow {
+    from { box-shadow: 0 0 8px rgba(34,211,238,0.1); }
+    to   { box-shadow: 0 0 20px rgba(34,211,238,0.2); }
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, #22d3ee 0%, #2dd4bf 30%, #34d399 60%, #38bdf8 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: ocean-title 6s ease-in-out infinite;
+    margin-bottom: 0.8rem;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    filter: drop-shadow(0 0 30px rgba(34,211,238,0.15));
+  }
+
+  @keyframes ocean-title {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 0.92rem;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+
+  /* ═══ CARD — GLASSMORPHISM ═══ */
+  .card {
+    background: linear-gradient(
+      135deg,
+      rgba(6,78,108,0.12) 0%,
+      rgba(4,50,80,0.08) 50%,
+      rgba(6,78,108,0.1) 100%
+    );
+    border: 1px solid rgba(34,211,238,0.1);
+    border-radius: 20px;
+    padding: 1.6rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(16px) saturate(1.3);
+    -webkit-backdrop-filter: blur(16px) saturate(1.3);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.4s, box-shadow 0.4s;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.2), rgba(45,212,191,0.15), transparent);
+  }
+
+  .card:hover {
+    border-color: rgba(34,211,238,0.2);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(34,211,238,0.05);
+  }
+
+  .card h2 {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--cyan);
+    margin-bottom: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(34,211,238,0.3);
+  }
+
+  /* ═══ SAMPLES ═══ */
+  .samples-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 1rem; }
+
+  .sample-btn {
+    background: rgba(6,78,108,0.15);
+    border: 1px solid rgba(34,211,238,0.15);
+    color: var(--cyan);
+    border-radius: 12px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sample-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(34,211,238,0.05), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .sample-btn:hover::after { opacity: 1; }
+
+  .sample-btn:hover {
+    background: rgba(14,116,144,0.25);
+    border-color: rgba(34,211,238,0.45);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(34,211,238,0.15), 0 0 0 1px rgba(34,211,238,0.08);
+  }
+
+  .sample-btn .label { font-family: var(--font-display); font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+  .sample-btn .strings { color: #7dd3fc; font-weight: 400; }
+
+  /* ═══ INPUT ROW ═══ */
+  .input-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+  .input-group { flex: 1; min-width: 140px; }
+
+  .input-group label {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-bottom: 7px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+  }
+
+  .input-group input {
+    width: 100%;
+    background: rgba(1,15,30,0.6);
+    border: 1.5px solid rgba(34,211,238,0.15);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-size: 1rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    caret-color: var(--cyan);
+  }
+
+  .input-group input:focus {
+    border-color: rgba(34,211,238,0.5);
+    box-shadow: 0 0 0 4px rgba(34,211,238,0.08), 0 0 30px rgba(34,211,238,0.1);
+    background: rgba(1,15,30,0.8);
+  }
+
+  .run-btn {
+    background: linear-gradient(135deg, #0e7490, #0284c7, #0369a1);
+    background-size: 200% 200%;
+    border: none;
+    color: white;
+    border-radius: 12px;
+    padding: 12px 30px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+    position: relative;
+    overflow: hidden;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .run-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left 0.5s;
+  }
+
+  .run-btn:hover::before { left: 100%; }
+
+  .run-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(14,116,144,0.5), 0 0 60px rgba(14,116,144,0.2);
+    background-position: 100% 50%;
+  }
+
+  /* ═══ SPEED + CONTROLS ═══ */
+  .speed-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .speed-row label { font-size: 0.72rem; color: var(--muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; }
+
+  .speed-row input[type=range] {
+    flex: 1;
+    accent-color: var(--cyan);
+    height: 4px;
+  }
+
+  .speed-val { font-size: 0.78rem; color: var(--cyan); min-width: 44px; text-align: right; font-family: var(--font-mono); text-shadow: 0 0 10px rgba(34,211,238,0.3); }
+
+  .controls-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+  .ctrl-btn {
+    background: rgba(4,50,80,0.2);
+    border: 1px solid rgba(34,211,238,0.12);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 9px 20px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    letter-spacing: 0.03em;
+  }
+
+  .ctrl-btn:hover:not(:disabled) {
+    background: rgba(34,211,238,0.1);
+    border-color: rgba(34,211,238,0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(34,211,238,0.1);
+  }
+  .ctrl-btn:disabled { opacity: 0.25; cursor: default; }
+
+  .ctrl-btn.prev-btn {
+    background: rgba(251,191,36,0.06);
+    border-color: rgba(251,191,36,0.2);
+    color: var(--amber);
+  }
+  .ctrl-btn.prev-btn:hover:not(:disabled) {
+    background: rgba(251,191,36,0.15);
+    border-color: rgba(251,191,36,0.45);
+    box-shadow: 0 4px 15px rgba(251,191,36,0.1);
+  }
+
+  /* ═══ STEP COUNTER ═══ */
+  .step-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin-left: auto;
+    padding: 7px 14px;
+    background: rgba(1,15,30,0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(34,211,238,0.1);
+    backdrop-filter: blur(8px);
+  }
+
+  .step-counter .cur { color: var(--cyan); font-weight: 700; text-shadow: 0 0 8px rgba(34,211,238,0.4); }
+
+  /* ═══ RESULT BAR ═══ */
+  .result-bar {
+    background: linear-gradient(135deg, rgba(52,211,153,0.06), rgba(45,212,191,0.04));
+    border: 1px solid rgba(52,211,153,0.2);
+    border-radius: 16px;
+    padding: 1.1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(52,211,153,0.3), transparent);
+  }
+
+  .result-bar.hidden { display: none !important; }
+
+  .result-item { display: flex; flex-direction: column; gap: 3px; }
+  .result-item .r-label { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+  .result-item .r-val { font-size: 1.2rem; font-weight: 700; color: var(--seafoam); font-family: var(--font-mono); text-shadow: 0 0 15px rgba(52,211,153,0.3); }
+
+  /* ═══ MATRICES ═══ */
+  .matrices-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 860px) { .matrices-wrap { grid-template-columns: 1fr; } }
+
+  .matrix-card {
+    background: linear-gradient(160deg, rgba(4,50,80,0.12), rgba(2,30,58,0.08));
+    border: 1px solid rgba(34,211,238,0.1);
+    border-radius: 18px;
+    padding: 1.4rem;
+    overflow-x: auto;
+    backdrop-filter: blur(10px);
+    position: relative;
+  }
+
+  .matrix-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.1), transparent);
+  }
+
+  .matrix-card h3 {
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  /* DP Table */
+  table.dp-table { border-collapse: separate; border-spacing: 3px; font-size: 0.8rem; }
+  table.dp-table td, table.dp-table th {
+    width: 36px; height: 36px; text-align: center; vertical-align: middle;
+    border-radius: 8px; font-family: var(--font-mono);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  table.dp-table th {
+    background: rgba(6,78,108,0.2);
+    color: #7dd3fc;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-shadow: 0 0 10px rgba(34,211,238,0.2);
+  }
+
+  .cell-empty  { background: rgba(4,50,80,0.1); color: #1e4a60; }
+  .cell-zero   { background: rgba(4,50,80,0.15); color: #2a6a80; }
+  .cell-filled { background: rgba(56,189,248,0.12); color: #7dd3fc; font-weight: 700; box-shadow: inset 0 0 8px rgba(56,189,248,0.05); }
+  .cell-match  { background: rgba(52,211,153,0.18); color: var(--seafoam); font-weight: 700; box-shadow: 0 0 12px rgba(52,211,153,0.1); }
+  .cell-active {
+    background: rgba(34,211,238,0.3);
+    color: #a5f3fc;
+    font-weight: 700;
+    transform: scale(1.18);
+    z-index: 2;
+    position: relative;
+    box-shadow: 0 0 20px rgba(34,211,238,0.25), inset 0 0 10px rgba(34,211,238,0.1);
+  }
+  .cell-path {
+    background: rgba(251,191,36,0.18);
+    color: var(--amber);
+    font-weight: 700;
+    box-shadow: 0 0 14px rgba(251,191,36,0.12);
+  }
+
+  /* Arrow Table */
+  table.arrow-table { border-collapse: separate; border-spacing: 3px; font-size: 0.88rem; }
+  table.arrow-table td, table.arrow-table th {
+    width: 36px; height: 36px; text-align: center; vertical-align: middle;
+    border-radius: 8px; font-family: var(--font-mono);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  table.arrow-table th {
+    background: rgba(6,78,108,0.2);
+    color: #7dd3fc;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  .arr-empty  { background: rgba(4,50,80,0.1); color: #1e4a60; font-size: 0.7rem; }
+  .arr-diag   { background: rgba(52,211,153,0.18); color: var(--seafoam); font-size: 1.05rem; font-weight: 700; }
+  .arr-up     { background: rgba(56,189,248,0.12); color: var(--blue); font-size: 0.95rem; }
+  .arr-left   { background: rgba(34,211,238,0.1); color: var(--cyan); font-size: 0.95rem; }
+  .arr-active {
+    outline: 2px solid var(--cyan);
+    outline-offset: 1px;
+    transform: scale(1.18);
+    z-index: 2;
+    position: relative;
+    box-shadow: 0 0 15px rgba(34,211,238,0.2);
+  }
+  .arr-path   { background: rgba(251,191,36,0.18); color: var(--amber); font-size: 0.95rem; box-shadow: 0 0 12px rgba(251,191,36,0.1); }
+
+  /* Step Info */
+  .step-info {
+    background: rgba(1,15,30,0.5);
+    border-radius: 12px;
+    padding: 0.9rem 1.2rem;
+    font-size: 0.82rem;
+    color: #9cc;
+    min-height: 44px;
+    margin-top: 1rem;
+    border-left: 3px solid var(--cyan);
+    font-family: var(--font-mono);
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 0 20px rgba(34,211,238,0.03);
+  }
+
+  /* Legend */
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 1rem; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: var(--muted); }
+  .legend-swatch { width: 12px; height: 12px; border-radius: 4px; box-shadow: 0 0 6px rgba(255,255,255,0.05); }
+
+  /* Complexity */
+  .complexity-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
+  .complexity-badge {
+    background: rgba(1,15,30,0.4);
+    border: 1px solid rgba(34,211,238,0.1);
+    border-radius: 10px;
+    padding: 9px 16px;
+    font-size: 0.78rem;
+    color: #9cc;
+    backdrop-filter: blur(8px);
+  }
+  .complexity-badge span { color: var(--cyan); font-weight: 700; font-family: var(--font-mono); text-shadow: 0 0 8px rgba(34,211,238,0.3); }
+
+  /* ═══════════════════════════════════
+     LEARN PAGE
+  ═══════════════════════════════════ */
+  .learn-header {
+    padding: 2.5rem 2rem 1.5rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .back-btn {
+    background: rgba(4,50,80,0.15);
+    border: 1px solid rgba(34,211,238,0.12);
+    color: #8aa;
+    border-radius: 10px;
+    padding: 8px 18px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: var(--font-display);
+    cursor: pointer;
+    transition: all 0.25s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2rem;
+  }
+
+  .back-btn:hover {
+    background: rgba(34,211,238,0.08);
+    color: var(--text);
+    border-color: rgba(34,211,238,0.3);
+    box-shadow: 0 4px 15px rgba(34,211,238,0.08);
+  }
+
+  .learn-hero {
+    margin-bottom: 2.5rem;
+  }
+
+  .learn-hero .badge2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(56,189,248,0.06);
+    color: var(--blue);
+    border: 1px solid rgba(56,189,248,0.2);
+    border-radius: 24px;
+    font-size: 0.68rem;
+    padding: 5px 16px;
+    margin-bottom: 1rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 700;
+    backdrop-filter: blur(8px);
+  }
+
+  .learn-hero h1 {
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--blue), var(--cyan), var(--teal));
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: ocean-title 6s ease-in-out infinite;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+    line-height: 1.1;
+  }
+
+  .learn-hero p {
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.7;
+    max-width: 620px;
+  }
+
+  .learn-body { max-width: 900px; margin: 0 auto; padding: 0 2rem 4rem; }
+
+  .learn-section {
+    background: linear-gradient(160deg, rgba(6,78,108,0.1), rgba(4,50,80,0.06));
+    border: 1px solid rgba(34,211,238,0.1);
+    border-radius: 22px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .learn-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.15), transparent);
+  }
+
+  .learn-section h2 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sec-icon {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  .learn-section p {
+    color: #aabbcc;
+    font-size: 0.92rem;
+    line-height: 1.75;
+    margin-bottom: 1rem;
+  }
+
+  .learn-section p:last-child { margin-bottom: 0; }
+
+  /* Inline code */
+  code {
+    background: rgba(34,211,238,0.08);
+    color: var(--cyan);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    border: 1px solid rgba(34,211,238,0.08);
+  }
+
+  /* Recurrence block */
+  .recurrence {
+    background: rgba(1,10,20,0.7);
+    border: 1px solid rgba(34,211,238,0.15);
+    border-radius: 14px;
+    padding: 1.4rem 1.6rem;
+    margin: 1.2rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: #cde;
+    line-height: 1.9;
+    box-shadow: inset 0 0 30px rgba(34,211,238,0.02);
+  }
+
+  .recurrence .hi { color: var(--cyan); font-weight: 700; text-shadow: 0 0 8px rgba(34,211,238,0.3); }
+  .recurrence .gr { color: var(--green); }
+  .recurrence .bl { color: var(--blue); }
+  .recurrence .am { color: var(--amber); }
+
+  /* Steps list */
+  .algo-steps { list-style: none; counter-reset: step; margin: 1rem 0; }
+  .algo-steps li {
+    counter-increment: step;
+    position: relative;
+    padding-left: 2.8rem;
+    margin-bottom: 0.9rem;
+    color: #aabbcc;
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+  .algo-steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 0;
+    width: 26px; height: 26px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(56,189,248,0.08));
+    border: 1px solid rgba(34,211,238,0.25);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--cyan);
+    font-family: var(--font-mono);
+    line-height: 26px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(34,211,238,0.08);
+  }
+
+  /* Code block */
+  .code-block {
+    background: rgba(1,8,18,0.9);
+    border: 1px solid rgba(34,211,238,0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    margin: 1.2rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1.3rem;
+    background: rgba(6,78,108,0.12);
+    border-bottom: 1px solid rgba(34,211,238,0.08);
+  }
+
+  .code-lang {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+
+  .code-dots { display: flex; gap: 6px; }
+  .code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+
+  .code-body { padding: 1.3rem 1.6rem; line-height: 2; overflow-x: auto; }
+  .code-body .kw { color: #38bdf8; }
+  .code-body .fn { color: #a5b4fc; }
+  .code-body .str { color: #86efac; }
+  .code-body .cm { color: #3a4a5a; }
+  .code-body .nm { color: #fbbf24; }
+  .code-body .op { color: #7a8a9a; }
+
+  /* Complexity table */
+  .complexity-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(34,211,238,0.1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+
+  .complexity-table th {
+    background: rgba(6,78,108,0.15);
+    color: var(--muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 11px 16px;
+    text-align: left;
+    font-weight: 700;
+    border-bottom: 1px solid rgba(34,211,238,0.08);
+  }
+
+  .complexity-table td {
+    padding: 11px 16px;
+    color: #aabbcc;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+  }
+
+  .complexity-table tr:last-child td { border-bottom: none; }
+  .complexity-table td:first-child { color: var(--text); font-weight: 600; font-family: var(--font-display); }
+  .complexity-table .hi-cell { color: var(--cyan); font-weight: 700; text-shadow: 0 0 8px rgba(34,211,238,0.2); }
+
+  /* Applications grid */
+  .apps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 1rem; }
+
+  .app-card {
+    background: rgba(1,15,30,0.4);
+    border: 1px solid rgba(34,211,238,0.08);
+    border-radius: 14px;
+    padding: 1.2rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .app-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(34,211,238,0.1), transparent);
+  }
+
+  .app-card:hover {
+    background: rgba(6,78,108,0.12);
+    border-color: rgba(34,211,238,0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2), 0 0 0 1px rgba(34,211,238,0.05);
+  }
+
+  .app-card .app-icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+  .app-card .app-name { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 0.3rem; }
+  .app-card .app-desc { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+  /* Variants */
+  .variants-list { list-style: none; margin-top: 1rem; }
+  .variants-list li {
+    display: flex;
+    gap: 12px;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid rgba(34,211,238,0.05);
+    font-size: 0.88rem;
+    color: #aabbcc;
+    line-height: 1.6;
+  }
+  .variants-list li:last-child { border-bottom: none; }
+  .variants-list .vname { color: var(--cyan); font-weight: 700; min-width: 170px; font-family: var(--font-mono); font-size: 0.8rem; }
+
+  /* Insight box */
+  .insight {
+    background: rgba(52,211,153,0.05);
+    border: 1px solid rgba(52,211,153,0.15);
+    border-radius: 14px;
+    padding: 1.1rem 1.4rem;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #6ee7b7;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.6;
+    backdrop-filter: blur(8px);
+    box-shadow: inset 0 0 20px rgba(52,211,153,0.02);
+  }
+
+  .insight .ins-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+  /* ═══ FLOATING PARTICLES (small) ═══ */
+  .ocean-particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .ocean-particles .particle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(34,211,238,0.2);
+    box-shadow: 0 0 4px rgba(34,211,238,0.15);
+    animation: particle-drift linear infinite;
+    opacity: 0;
+  }
+
+  @keyframes particle-drift {
+    0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+    10% { opacity: 0.35; }
+    90% { opacity: 0.12; }
+    100% { transform: translateY(-20px) translateX(var(--pdrift)); opacity: 0; }
+  }
+
+  .ocean-particles .particle:nth-child(1)  { left: 8%;  --pdrift: 15px;  animation-duration: 12s; animation-delay: 0s; }
+  .ocean-particles .particle:nth-child(2)  { left: 18%; --pdrift: -20px; animation-duration: 16s; animation-delay: 1s; }
+  .ocean-particles .particle:nth-child(3)  { left: 28%; --pdrift: 10px;  animation-duration: 14s; animation-delay: 3s; }
+  .ocean-particles .particle:nth-child(4)  { left: 35%; --pdrift: -8px;  animation-duration: 18s; animation-delay: 0.5s; }
+  .ocean-particles .particle:nth-child(5)  { left: 45%; --pdrift: 25px;  animation-duration: 13s; animation-delay: 4s; }
+  .ocean-particles .particle:nth-child(6)  { left: 55%; --pdrift: -15px; animation-duration: 15s; animation-delay: 2s; }
+  .ocean-particles .particle:nth-child(7)  { left: 65%; --pdrift: 12px;  animation-duration: 17s; animation-delay: 5s; }
+  .ocean-particles .particle:nth-child(8)  { left: 72%; --pdrift: -22px; animation-duration: 11s; animation-delay: 1.5s; }
+  .ocean-particles .particle:nth-child(9)  { left: 82%; --pdrift: 18px;  animation-duration: 19s; animation-delay: 3.5s; }
+  .ocean-particles .particle:nth-child(10) { left: 92%; --pdrift: -10px; animation-duration: 14s; animation-delay: 6s; }
+
+  /* ═══ RESPONSIVE ═══ */
+  @media (max-width: 600px) {
+    .topnav { padding: 0.8rem 1rem; }
+    .container { padding: 1.2rem 1rem; }
+    .card { padding: 1.2rem; border-radius: 16px; }
+    .input-row { flex-direction: column; }
+    .hero h1 { font-size: 1.6rem; }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ═══ DECORATIVE CSS BUBBLES ═══ -->
+<div class="ocean-bubbles">
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+  <div class="bubble"></div><div class="bubble"></div>
+</div>
+
+<!-- ═══ FLOATING PARTICLES ═══ -->
+<div class="ocean-particles">
+  <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+  <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+  <div class="particle"></div><div class="particle"></div><div class="particle"></div>
+  <div class="particle"></div>
+</div>
+
+<!-- Interactive cursor canvas -->
+<canvas id="cursor-canvas"></canvas>
+
+<!-- ═══ TOP NAV ═══ -->
+<nav class="topnav">
+  <div class="logo" onclick="showVisualizer()" style="cursor:pointer;">🌊 OceanLens</div>
+  <button class="learn-btn" onclick="showLearn()">
+    <span>🐚</span> Learn LCS
+  </button>
+</nav>
+
+<!-- ═══════════════ VISUALIZER PAGE ═══════════════ -->
+<div id="page-visualizer" class="page">
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">🌊 Algorithm Visualizer</div>
+    <h1>Longest Common<br>Subsequence</h1>
+    <p>// step-by-step DP table · arrow tracing · path highlight</p>
+  </div>
+
+  <!-- SAMPLES -->
+  <div class="card">
+    <h2>⚡ Quick Samples</h2>
+    <div class="samples-grid" id="samplesGrid"></div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="card">
+    <h2>✏️ Enter Strings</h2>
+    <div class="input-row">
+      <div class="input-group">
+        <label>String X</label>
+        <input type="text" id="strX" maxlength="14" placeholder="ABCBDAB">
+      </div>
+      <div class="input-group">
+        <label>String Y</label>
+        <input type="text" id="strY" maxlength="14" placeholder="BDCAB">
+      </div>
+      <button class="run-btn" onclick="startVisualization()">▶ Visualize</button>
+    </div>
+    <div class="speed-row">
+      <label>Speed</label>
+      <input type="range" id="speedSlider" min="50" max="900" value="400" step="50">
+      <div class="speed-val" id="speedLabel">400ms</div>
+    </div>
+    <div class="controls-row" style="margin-top:12px;">
+      <button class="ctrl-btn" id="btnPause" onclick="togglePause()" disabled>⏸ Pause</button>
+      <button class="ctrl-btn" id="btnPrev"  onclick="stepBackward()" disabled title="Previous step">◀ Prev</button>
+      <button class="ctrl-btn" id="btnStep"  onclick="stepForward()"  disabled>⏭ Next</button>
+      <button class="ctrl-btn" id="btnReset" onclick="resetAll()"     disabled>↺ Reset</button>
+      <div class="step-counter" id="stepCounter" style="display:none;">
+        Step <span class="cur" id="stepCur">0</span> / <span id="stepTotal">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-bar hidden" id="resultBar">
+    <div class="result-item"><div class="r-label">LCS Length</div><div class="r-val" id="resLen">-</div></div>
+    <div class="result-item"><div class="r-label">LCS String</div><div class="r-val" id="resStr">-</div></div>
+    <div class="result-item"><div class="r-label">|X|</div><div class="r-val" id="resM">-</div></div>
+    <div class="result-item"><div class="r-label">|Y|</div><div class="r-val" id="resN">-</div></div>
+    <div class="result-item"><div class="r-label">Cells filled</div><div class="r-val" id="resCells">-</div></div>
+  </div>
+
+  <!-- MATRICES -->
+  <div class="matrices-wrap" id="matricesWrap" style="display:none;">
+    <div class="matrix-card">
+      <h3><span class="dot" style="background:var(--blue);"></span>DP Table — cell values</h3>
+      <div id="dpTableWrap"></div>
+      <div class="step-info" id="stepInfoDp">Press ▶ Visualize to begin</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(45,212,191,0.3);"></div>Current</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(74,222,128,0.2);"></div>Match</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(129,140,248,0.14);"></div>No match</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(251,191,36,0.22);"></div>LCS path</div>
+      </div>
+    </div>
+    <div class="matrix-card">
+      <h3><span class="dot" style="background:var(--green);"></span>Arrow Matrix — direction trace</h3>
+      <div id="arrTableWrap"></div>
+      <div class="step-info" id="stepInfoArr">Arrows appear as cells are computed</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(74,222,128,0.2);"></div>↖ Match</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(129,140,248,0.12);"></div>↑ Up</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(45,212,191,0.12);"></div>← Left</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(251,191,36,0.22);"></div>LCS path</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLEXITY -->
+  <div style="display:none;" id="complexitySection">
+    <div class="card">
+      <h2>📊 Complexity</h2>
+      <div class="complexity-row">
+        <div class="complexity-badge">Time: <span>O(m × n)</span></div>
+        <div class="complexity-badge">Space: <span>O(m × n)</span></div>
+        <div class="complexity-badge">Backtrack: <span>O(m + n)</span></div>
+        <div class="complexity-badge">This run: <span id="thisRunCells">—</span> cells</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div><!-- end visualizer -->
+
+
+<!-- ═══════════════ LEARN PAGE ═══════════════ -->
+<div id="page-learn" class="page" style="display:none;">
+
+  <div class="learn-header">
+    <button class="back-btn" onclick="showVisualizer()">← Back to Visualizer</button>
+
+    <div class="learn-hero">
+      <div class="badge2">Reference Guide</div>
+      <h1>Longest Common<br>Subsequence</h1>
+      <p>A complete reference — from intuition to code, complexity to real-world applications.</p>
+    </div>
+  </div>
+
+  <div class="learn-body">
+
+    <!-- WHAT IS LCS -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(129,140,248,0.12);border:1px solid rgba(129,140,248,0.25);">🔍</div>
+        What is LCS?
+      </h2>
+      <p>The <strong style="color:var(--text);">Longest Common Subsequence (LCS)</strong> problem asks: given two sequences <code>X</code> and <code>Y</code>, find the longest sequence that appears in both — but the characters don't have to be contiguous.</p>
+      <p>A <em>subsequence</em> is formed by deleting some elements from the original without changing the relative order. For example, <code>ACE</code> is a subsequence of <code>ABCDE</code>.</p>
+      <div class="recurrence">
+        <span class="bl">X</span> = A <span class="hi">B</span> C <span class="hi">B</span> D <span class="hi">A</span> B<br>
+        <span class="bl">Y</span> = <span class="hi">B</span> D C <span class="hi">A</span> B A<br>
+        <span class="gr">LCS</span> = <span class="am">B C B A</span> &nbsp;(length <span class="am">4</span>)
+      </div>
+      <p>This is different from the <em>Longest Common Substring</em> problem, where characters must be contiguous. LCS is more flexible and is a core problem in computer science.</p>
+      <div class="insight">
+        <span class="ins-icon">💡</span>
+        LCS is not always unique — multiple sequences of the same maximum length can exist. The algorithm finds one of them.
+      </div>
+    </div>
+
+    <!-- ALGORITHM -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.25);">🧠</div>
+        The Algorithm — Dynamic Programming
+      </h2>
+      <p>LCS is solved optimally using <strong style="color:var(--text);">bottom-up dynamic programming</strong>. We build a 2D table <code>dp[i][j]</code> where each cell stores the LCS length of the prefixes <code>X[1..i]</code> and <code>Y[1..j]</code>.</p>
+      <ul class="algo-steps">
+        <li>Initialize a <code>(m+1) × (n+1)</code> table filled with 0. The extra row/column represents the empty prefix (ε).</li>
+        <li>For each pair <code>(i, j)</code>, check if <code>X[i] == Y[j]</code>.</li>
+        <li>If they match: <code>dp[i][j] = dp[i-1][j-1] + 1</code> — extend the diagonal subsequence.</li>
+        <li>If they don't match: <code>dp[i][j] = max(dp[i-1][j], dp[i][j-1])</code> — take the best from above or left.</li>
+        <li>Record an arrow at each cell (↖, ↑, ←) for backtracking.</li>
+        <li>After filling the table, backtrack from <code>dp[m][n]</code> following arrows to reconstruct the LCS string.</li>
+      </ul>
+
+      <p style="margin-top:1.2rem;font-weight:700;color:var(--text);font-size:0.9rem;">Recurrence Relation</p>
+      <div class="recurrence">
+        <span class="cm">// Base cases</span><br>
+        <span class="hi">dp</span>[i][0] <span class="op">=</span> <span class="nm">0</span>, &nbsp;<span class="hi">dp</span>[0][j] <span class="op">=</span> <span class="nm">0</span><br><br>
+        <span class="cm">// If characters match</span><br>
+        <span class="kw">if</span> X[i] <span class="op">==</span> Y[j]:<br>
+        &nbsp;&nbsp;<span class="hi">dp</span>[i][j] <span class="op">=</span> <span class="hi">dp</span>[i<span class="op">-</span><span class="nm">1</span>][j<span class="op">-</span><span class="nm">1</span>] <span class="op">+</span> <span class="nm">1</span><br><br>
+        <span class="cm">// If characters don't match</span><br>
+        <span class="kw">else</span>:<br>
+        &nbsp;&nbsp;<span class="hi">dp</span>[i][j] <span class="op">=</span> <span class="gr">max</span>(<span class="hi">dp</span>[i<span class="op">-</span><span class="nm">1</span>][j], <span class="hi">dp</span>[i][j<span class="op">-</span><span class="nm">1</span>])
+      </div>
+    </div>
+
+    <!-- CODE -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);">💻</div>
+        Code Implementations
+      </h2>
+      <p>Here are clean implementations in Python and JavaScript.</p>
+
+      <!-- Python -->
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span style="background:#ff5f57;"></span>
+            <span style="background:#ffbd2e;"></span>
+            <span style="background:#28ca41;"></span>
+          </div>
+          <div class="code-lang">Python</div>
+        </div>
+        <pre class="code-body"><span class="kw">def</span> <span class="fn">lcs</span>(X, Y):
+    m, n <span class="op">=</span> <span class="fn">len</span>(X), <span class="fn">len</span>(Y)
+
+    <span class="cm"># Build DP table</span>
+    dp <span class="op">=</span> [[<span class="nm">0</span>] <span class="op">*</span> (n <span class="op">+</span> <span class="nm">1</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(m <span class="op">+</span> <span class="nm">1</span>)]
+
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(<span class="nm">1</span>, m <span class="op">+</span> <span class="nm">1</span>):
+        <span class="kw">for</span> j <span class="kw">in</span> <span class="fn">range</span>(<span class="nm">1</span>, n <span class="op">+</span> <span class="nm">1</span>):
+            <span class="kw">if</span> X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">==</span> Y[j<span class="op">-</span><span class="nm">1</span>]:
+                dp[i][j] <span class="op">=</span> dp[i<span class="op">-</span><span class="nm">1</span>][j<span class="op">-</span><span class="nm">1</span>] <span class="op">+</span> <span class="nm">1</span>
+            <span class="kw">else</span>:
+                dp[i][j] <span class="op">=</span> <span class="fn">max</span>(dp[i<span class="op">-</span><span class="nm">1</span>][j], dp[i][j<span class="op">-</span><span class="nm">1</span>])
+
+    <span class="cm"># Backtrack to find the LCS string</span>
+    result, i, j <span class="op">=</span> [], m, n
+    <span class="kw">while</span> i <span class="op">></span> <span class="nm">0</span> <span class="kw">and</span> j <span class="op">></span> <span class="nm">0</span>:
+        <span class="kw">if</span> X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">==</span> Y[j<span class="op">-</span><span class="nm">1</span>]:
+            result.<span class="fn">append</span>(X[i<span class="op">-</span><span class="nm">1</span>])
+            i <span class="op">-=</span> <span class="nm">1</span>; j <span class="op">-=</span> <span class="nm">1</span>
+        <span class="kw">elif</span> dp[i<span class="op">-</span><span class="nm">1</span>][j] <span class="op">>=</span> dp[i][j<span class="op">-</span><span class="nm">1</span>]:
+            i <span class="op">-=</span> <span class="nm">1</span>
+        <span class="kw">else</span>:
+            j <span class="op">-=</span> <span class="nm">1</span>
+
+    <span class="kw">return</span> dp[m][n], <span class="str">''</span>.<span class="fn">join</span>(<span class="fn">reversed</span>(result))
+
+<span class="cm"># Example</span>
+length, seq <span class="op">=</span> <span class="fn">lcs</span>(<span class="str">"ABCBDAB"</span>, <span class="str">"BDCABA"</span>)
+<span class="fn">print</span>(length, seq)  <span class="cm"># 4  BCBA</span></pre>
+      </div>
+
+      <!-- JavaScript -->
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span style="background:#ff5f57;"></span>
+            <span style="background:#ffbd2e;"></span>
+            <span style="background:#28ca41;"></span>
+          </div>
+          <div class="code-lang">JavaScript</div>
+        </div>
+        <pre class="code-body"><span class="kw">function</span> <span class="fn">lcs</span>(X, Y) {
+  <span class="kw">const</span> m <span class="op">=</span> X.length, n <span class="op">=</span> Y.length;
+  <span class="kw">const</span> dp <span class="op">=</span> Array.<span class="fn">from</span>({length: m<span class="op">+</span><span class="nm">1</span>},
+               () <span class="op">=></span> <span class="kw">new</span> Array(n<span class="op">+</span><span class="nm">1</span>).<span class="fn">fill</span>(<span class="nm">0</span>));
+
+  <span class="kw">for</span> (<span class="kw">let</span> i <span class="op">=</span> <span class="nm">1</span>; i <span class="op"><=</span> m; i++) {
+    <span class="kw">for</span> (<span class="kw">let</span> j <span class="op">=</span> <span class="nm">1</span>; j <span class="op"><=</span> n; j++) {
+      <span class="kw">if</span> (X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">===</span> Y[j<span class="op">-</span><span class="nm">1</span>]) {
+        dp[i][j] <span class="op">=</span> dp[i<span class="op">-</span><span class="nm">1</span>][j<span class="op">-</span><span class="nm">1</span>] <span class="op">+</span> <span class="nm">1</span>;
+      } <span class="kw">else</span> {
+        dp[i][j] <span class="op">=</span> Math.<span class="fn">max</span>(dp[i<span class="op">-</span><span class="nm">1</span>][j], dp[i][j<span class="op">-</span><span class="nm">1</span>]);
+      }
+    }
+  }
+
+  <span class="cm">// Backtrack</span>
+  <span class="kw">let</span> i <span class="op">=</span> m, j <span class="op">=</span> n, lcsStr <span class="op">=</span> <span class="str">''</span>;
+  <span class="kw">while</span> (i <span class="op">></span> <span class="nm">0</span> <span class="op">&&</span> j <span class="op">></span> <span class="nm">0</span>) {
+    <span class="kw">if</span> (X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">===</span> Y[j<span class="op">-</span><span class="nm">1</span>]) { lcsStr <span class="op">=</span> X[i<span class="op">-</span><span class="nm">1</span>] <span class="op">+</span> lcsStr; i--; j--; }
+    <span class="kw">else if</span> (dp[i<span class="op">-</span><span class="nm">1</span>][j] <span class="op">>=</span> dp[i][j<span class="op">-</span><span class="nm">1</span>]) i--;
+    <span class="kw">else</span> j--;
+  }
+  <span class="kw">return</span> { length: dp[m][n], sequence: lcsStr };
+}
+
+<span class="fn">lcs</span>(<span class="str">'ABCBDAB'</span>, <span class="str">'BDCABA'</span>);
+<span class="cm">// → { length: 4, sequence: 'BCBA' }</span></pre>
+      </div>
+
+      <!-- C++ -->
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots">
+            <span style="background:#ff5f57;"></span>
+            <span style="background:#ffbd2e;"></span>
+            <span style="background:#28ca41;"></span>
+          </div>
+          <div class="code-lang">C++</div>
+        </div>
+        <pre class="code-body"><span class="kw">#include</span> <span class="str">&lt;iostream&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;string&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;vector&gt;</span>
+<span class="kw">#include</span> <span class="str">&lt;algorithm&gt;</span>
+<span class="kw">using namespace</span> std;
+
+<span class="fn">pair</span><span class="op">&lt;</span><span class="kw">int</span>, string<span class="op">&gt;</span> <span class="fn">lcs</span>(<span class="kw">const</span> string<span class="op">&amp;</span> X, <span class="kw">const</span> string<span class="op">&amp;</span> Y) {
+    <span class="kw">int</span> m <span class="op">=</span> X.<span class="fn">size</span>(), n <span class="op">=</span> Y.<span class="fn">size</span>();
+
+    <span class="cm">// Build DP table</span>
+    vector<span class="op">&lt;</span>vector<span class="op">&lt;</span><span class="kw">int</span><span class="op">&gt;&gt;</span> dp(m <span class="op">+</span> <span class="nm">1</span>, vector<span class="op">&lt;</span><span class="kw">int</span><span class="op">&gt;</span>(n <span class="op">+</span> <span class="nm">1</span>, <span class="nm">0</span>));
+
+    <span class="kw">for</span> (<span class="kw">int</span> i <span class="op">=</span> <span class="nm">1</span>; i <span class="op">&lt;=</span> m; i++) {
+        <span class="kw">for</span> (<span class="kw">int</span> j <span class="op">=</span> <span class="nm">1</span>; j <span class="op">&lt;=</span> n; j++) {
+            <span class="kw">if</span> (X[i <span class="op">-</span> <span class="nm">1</span>] <span class="op">==</span> Y[j <span class="op">-</span> <span class="nm">1</span>])
+                dp[i][j] <span class="op">=</span> dp[i <span class="op">-</span> <span class="nm">1</span>][j <span class="op">-</span> <span class="nm">1</span>] <span class="op">+</span> <span class="nm">1</span>;
+            <span class="kw">else</span>
+                dp[i][j] <span class="op">=</span> <span class="fn">max</span>(dp[i <span class="op">-</span> <span class="nm">1</span>][j], dp[i][j <span class="op">-</span> <span class="nm">1</span>]);
+        }
+    }
+
+    <span class="cm">// Backtrack to reconstruct the LCS string</span>
+    string result;
+    <span class="kw">int</span> i <span class="op">=</span> m, j <span class="op">=</span> n;
+    <span class="kw">while</span> (i <span class="op">&gt;</span> <span class="nm">0</span> <span class="op">&amp;&amp;</span> j <span class="op">&gt;</span> <span class="nm">0</span>) {
+        <span class="kw">if</span> (X[i <span class="op">-</span> <span class="nm">1</span>] <span class="op">==</span> Y[j <span class="op">-</span> <span class="nm">1</span>]) {
+            result <span class="op">+=</span> X[i <span class="op">-</span> <span class="nm">1</span>];
+            i--; j--;
+        } <span class="kw">else if</span> (dp[i <span class="op">-</span> <span class="nm">1</span>][j] <span class="op">&gt;=</span> dp[i][j <span class="op">-</span> <span class="nm">1</span>]) {
+            i--;
+        } <span class="kw">else</span> {
+            j--;
+        }
+    }
+    <span class="fn">reverse</span>(result.<span class="fn">begin</span>(), result.<span class="fn">end</span>());
+    <span class="kw">return</span> {dp[m][n], result};
+}
+
+<span class="kw">int</span> <span class="fn">main</span>() {
+    string X <span class="op">=</span> <span class="str">"ABCBDAB"</span>, Y <span class="op">=</span> <span class="str">"BDCABA"</span>;
+    <span class="kw">auto</span> [len, seq] <span class="op">=</span> <span class="fn">lcs</span>(X, Y);
+    cout <span class="op">&lt;&lt;</span> len <span class="op">&lt;&lt;</span> <span class="str">" "</span> <span class="op">&lt;&lt;</span> seq <span class="op">&lt;&lt;</span> endl; <span class="cm">// 4 BCBA</span>
+}</pre>
+      </div>
+    </div>
+
+    <!-- COMPLEXITY -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);">📊</div>
+        Time & Space Complexity
+      </h2>
+      <table class="complexity-table">
+        <thead>
+          <tr><th>Operation</th><th>Complexity</th><th>Explanation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>DP Table Fill</td><td class="hi-cell">O(m × n)</td><td>Every cell computed once</td></tr>
+          <tr><td>Space (standard)</td><td class="hi-cell">O(m × n)</td><td>Full table stored for backtracking</td></tr>
+          <tr><td>Space (optimized)</td><td class="hi-cell">O(min(m, n))</td><td>Single rolling row — use shorter string as columns</td></tr>
+          <tr><td>Backtracking</td><td class="hi-cell">O(m + n)</td><td>At most m+n steps along the path</td></tr>
+          <tr><td>Hirschberg's Algorithm</td><td class="hi-cell">O(m × n) time, O(m+n) space</td><td>Full LCS string in linear space</td></tr>
+        </tbody>
+      </table>
+      <div class="insight" style="margin-top:1rem;">
+        <span class="ins-icon">💡</span>
+        If you only need the LCS <em>length</em> (not the actual string), you can reduce space to O(min(m,n)) using a <strong>single rolling row</strong> — orient the table so the shorter string defines the columns (swap X and Y if needed), then update that one row in place, carrying only the previous diagonal value in a temporary variable.
+      </div>
+    </div>
+
+    <!-- REAL WORLD -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.25);">🌍</div>
+        Real-World Applications
+      </h2>
+      <p>LCS is a foundational algorithm that powers many real tools you use daily:</p>
+      <div class="apps-grid">
+        <div class="app-card">
+          <div class="app-icon">🧬</div>
+          <div class="app-name">Bioinformatics</div>
+          <div class="app-desc">DNA/protein sequence alignment; finding evolutionary relationships between genomes.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">🔀</div>
+          <div class="app-name">Git / Diff</div>
+          <div class="app-desc">The <code>diff</code> tool and Git use LCS to show what changed between file versions.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">🤖</div>
+          <div class="app-name">NLP & Plagiarism</div>
+          <div class="app-desc">Measuring similarity between texts, spell checking, and detecting copied content.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">🗂️</div>
+          <div class="app-name">Version Control</div>
+          <div class="app-desc">Merging file changes without conflicts by finding common structure between revisions.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">🔍</div>
+          <div class="app-name">Edit Distance</div>
+          <div class="app-desc">LCS is deeply related to Levenshtein distance; fewer LCS matches = more edits needed.</div>
+        </div>
+        <div class="app-card">
+          <div class="app-icon">📝</div>
+          <div class="app-name">Spell Check</div>
+          <div class="app-desc">Fuzzy string matching in IDEs and search engines uses LCS-based similarity scores.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VARIANTS -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.25);">🔗</div>
+        Related Problems & Variants
+      </h2>
+      <ul class="variants-list">
+        <li>
+          <span class="vname">Longest Common Substring</span>
+          Characters must be contiguous. Uses DP but resets on mismatch. O(m×n) time.
+        </li>
+        <li>
+          <span class="vname">Shortest Common Supersequence</span>
+          Shortest sequence containing both X and Y. Length = m + n − LCS(X,Y).
+        </li>
+        <li>
+          <span class="vname">Longest Increasing Subsequence</span>
+          LCS of X and sorted(X). Can be solved in O(n log n) with patience sorting.
+        </li>
+        <li>
+          <span class="vname">Edit Distance (Levenshtein)</span>
+          Min edits (insert, delete, substitute) to transform X → Y. With <em>insert/delete only</em>, dist = m + n − 2×LCS. Standard Levenshtein (with substitution) is a separate DP and that formula does not apply.
+        </li>
+        <li>
+          <span class="vname">Diff / Patience Diff</span>
+          Git's <code>diff</code> algorithm finds the LCS of unique lines between two files.
+        </li>
+        <li>
+          <span class="vname">Hirschberg's Algorithm</span>
+          Computes full LCS string using only O(m+n) space via divide-and-conquer on the DP table.
+        </li>
+      </ul>
+    </div>
+
+    <!-- KEY INSIGHT -->
+    <div class="learn-section">
+      <h2>
+        <div class="sec-icon" style="background:rgba(129,140,248,0.1);border:1px solid rgba(129,140,248,0.25);">⚗️</div>
+        Key Insight — Optimal Substructure
+      </h2>
+      <p>LCS exhibits <strong style="color:var(--text);">optimal substructure</strong>: the solution to the full problem contains optimal solutions to subproblems. This is why dynamic programming works perfectly here.</p>
+      <p>If <code>X[m] == Y[n]</code>, this character must be in the LCS — we take it and recurse on the remaining prefixes. If they differ, at least one must be excluded, and we try both options and take the maximum.</p>
+      <p>Naive recursion solves this in <strong style="color:var(--red);">O(2ⁿ)</strong> due to overlapping subproblems. DP memoizes each <code>(i,j)</code> pair, reducing it to <strong style="color:var(--green);">O(m×n)</strong> — a dramatic improvement.</p>
+      <div class="insight">
+        <span class="ins-icon">🚀</span>
+        The <strong>subproblem overlap</strong> is the key: without memoization, the same <code>lcs(i,j)</code> call is made exponentially many times. DP solves each subproblem exactly once.
+      </div>
+    </div>
+
+  </div><!-- end learn-body -->
+</div><!-- end page-learn -->
+
+<script>
+/* ══════════════════════════════════
+   INTERACTIVE BUBBLE BACKGROUND
+══════════════════════════════════ */
+const canvas = document.getElementById('cursor-canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+let mouse = { x: -999, y: -999, vx: 0, vy: 0, px: -999, py: -999 };
+let bubbles = [];
+
+function resizeCanvas() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Ocean palette: deep blue, cyan, teal, seafoam, coral
+const PALETTES = [
+  { h: 195, s: 85, l: 58 }, // ocean cyan
+  { h: 210, s: 80, l: 55 }, // deep blue
+  { h: 174, s: 75, l: 55 }, // teal
+  { h: 160, s: 65, l: 55 }, // seafoam
+  { h: 185, s: 90, l: 62 }, // aqua
+];
+
+function randPalette() {
+  return PALETTES[Math.floor(Math.random() * PALETTES.length)];
+}
+
+function createBubble(x, y, big = false) {
+  const p = randPalette();
+  const r = big
+    ? 24 + Math.random() * 55
+    : 10 + Math.random() * 38;
+  return {
+    x: x ?? Math.random() * W,
+    y: y ?? Math.random() * H,
+    r,
+    targetR: r,
+    vx: (Math.random() - 0.5) * 0.5,
+    vy: -0.2 - Math.random() * 0.5,
+    hue: p.h,
+    sat: p.s,
+    lit: p.l,
+    alpha: 0.06 + Math.random() * 0.08,
+    life: 1,
+    maxLife: 300 + Math.random() * 500,
+    age: 0,
+    wobble: Math.random() * Math.PI * 2,
+    wobbleSpeed: 0.015 + Math.random() * 0.02,
+    shimmer: 0,
+    popped: false,
+  };
+}
+
+// Spawn initial ambient bubbles
+for (let i = 0; i < 25; i++) {
+  const b = createBubble();
+  b.age = Math.random() * b.maxLife;
+  bubbles.push(b);
+}
+
+let lastSpawnX = -999, lastSpawnY = -999;
+
+// Mouse tracking + trail bubbles
+window.addEventListener('mousemove', e => {
+  mouse.vx = e.clientX - mouse.px;
+  mouse.vy = e.clientY - mouse.py;
+  mouse.px = mouse.x;
+  mouse.py = mouse.y;
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+
+  // Spawn trail bubbles as cursor moves (sparse)
+  const dx = e.clientX - lastSpawnX, dy = e.clientY - lastSpawnY;
+  const moved = Math.sqrt(dx * dx + dy * dy);
+  if (moved > 40) {
+    const count = 1;
+    for (let k = 0; k < count; k++) {
+      const p = randPalette();
+      const r = 6 + Math.random() * 24;
+      bubbles.push({
+        x: e.clientX + (Math.random() - 0.5) * 30,
+        y: e.clientY + (Math.random() - 0.5) * 30,
+        r, targetR: r,
+        vx: (Math.random() - 0.5) * 1.2 + mouse.vx * 0.07,
+        vy: (Math.random() - 0.5) * 1.0 + mouse.vy * 0.07 - 0.6,
+        hue: p.h, sat: p.s, lit: p.l,
+        alpha: 0.06 + Math.random() * 0.08,
+        life: 1,
+        maxLife: 130 + Math.random() * 220,
+        age: 0,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.018 + Math.random() * 0.025,
+        shimmer: 0.5,
+        popped: false,
+      });
+    }
+    lastSpawnX = e.clientX;
+    lastSpawnY = e.clientY;
+  }
+});
+
+// Click to spawn a few bubbles
+window.addEventListener('click', e => {
+  const count = 3 + Math.floor(Math.random() * 4);
+  for (let k = 0; k < count; k++) {
+    const b = createBubble(
+      e.clientX + (Math.random() - 0.5) * 40,
+      e.clientY + (Math.random() - 0.5) * 40
+    );
+    bubbles.push(b);
+  }
+});
+
+function drawBubble(b) {
+  const r = b.r;
+  const x = b.x;
+  const y = b.y;
+  const alpha = b.alpha * b.life;
+
+  ctx.save();
+
+  // Bubble body
+  const bodyGrad = ctx.createRadialGradient(
+    x - r * 0.3, y - r * 0.3, r * 0.05,
+    x, y, r
+  );
+  bodyGrad.addColorStop(0, `hsla(${b.hue},${b.sat}%,${b.lit + 20}%,${alpha * 0.6})`);
+  bodyGrad.addColorStop(0.6, `hsla(${b.hue},${b.sat}%,${b.lit}%,${alpha * 0.25})`);
+  bodyGrad.addColorStop(1, `hsla(${b.hue},${b.sat}%,${b.lit - 10}%,${alpha * 0.5})`);
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+
+  // Rim / border
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.strokeStyle = `hsla(${b.hue},${b.sat}%,${b.lit + 20}%,${alpha * 0.75})`;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Specular highlight (top-left gleam)
+  const hiX = x - r * 0.32, hiY = y - r * 0.35;
+  const hiGrad = ctx.createRadialGradient(hiX, hiY, 0, hiX, hiY, r * 0.42);
+  hiGrad.addColorStop(0, `rgba(255,255,255,${0.55 * b.life})`);
+  hiGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath();
+  ctx.arc(hiX, hiY, r * 0.42, 0, Math.PI * 2);
+  ctx.fillStyle = hiGrad;
+  ctx.fill();
+
+  // Small secondary gleam
+  const g2X = x + r * 0.3, g2Y = y + r * 0.28;
+  const g2Grad = ctx.createRadialGradient(g2X, g2Y, 0, g2X, g2Y, r * 0.2);
+  g2Grad.addColorStop(0, `rgba(255,255,255,${0.25 * b.life})`);
+  g2Grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath();
+  ctx.arc(g2X, g2Y, r * 0.2, 0, Math.PI * 2);
+  ctx.fillStyle = g2Grad;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawCursorGlow() {
+  // removed - caused unwanted spark effect on mouse move
+}
+
+let waveOffset = 0;
+function drawWaves() {
+  waveOffset += 0.004;
+  const waves = [
+    { y: H * 0.72, amp: 18, freq: 0.008, alpha: 0.018, color: '34,211,238' },
+    { y: H * 0.78, amp: 14, freq: 0.012, alpha: 0.015, color: '56,189,248' },
+    { y: H * 0.85, amp: 10, freq: 0.016, alpha: 0.012, color: '52,211,153' },
+  ];
+  waves.forEach(w => {
+    ctx.beginPath();
+    ctx.moveTo(0, w.y);
+    for (let x = 0; x <= W; x += 4) {
+      const y = w.y + Math.sin(x * w.freq + waveOffset * (w.freq * 600)) * w.amp
+                    + Math.sin(x * w.freq * 0.6 + waveOffset * 1.3) * (w.amp * 0.4);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+    ctx.fillStyle = `rgba(${w.color},${w.alpha})`;
+    ctx.fill();
+  });
+}
+
+function animate() {
+  ctx.clearRect(0, 0, W, H);
+
+  drawWaves();
+  drawCursorGlow();
+
+  // Maintain ambient bubble count
+  while (bubbles.length < 25) {
+    const b = createBubble(Math.random() * W, H + 30);
+    bubbles.push(b);
+  }
+
+  // Update & draw bubbles
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i];
+    b.age++;
+    b.wobble += b.wobbleSpeed;
+
+    // Gentle wobble drift — keeps bubbles always moving
+    b.vx += Math.sin(b.wobble) * 0.018;
+    b.vy += Math.cos(b.wobble * 0.7) * 0.010;
+
+    // Mouse repulsion only
+    const dx = b.x - mouse.x, dy = b.y - mouse.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const repelR = b.r + 70;
+    if (dist < repelR && dist > 0) {
+      const force = (repelR - dist) / repelR;
+      b.vx += (dx / dist) * force * 0.5;
+      b.vy += (dy / dist) * force * 0.5;
+    }
+
+    // Soft speed cap so bubbles never stop but don't go crazy
+    const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+    if (speed > 2.5) { b.vx = (b.vx / speed) * 2.5; b.vy = (b.vy / speed) * 2.5; }
+    if (speed < 0.08) { b.vx += (Math.random() - 0.5) * 0.15; b.vy -= 0.05; }
+
+    // Very light damping so momentum fades slowly
+    b.vx *= 0.995;
+    b.vy *= 0.995;
+
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // Bounce off sides softly
+    if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.4; }
+    if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx) * 0.4; }
+
+    // Life fade in/out
+    const fadeIn = Math.min(1, b.age / 60);
+    const fadeOut = Math.max(0, 1 - (b.age - b.maxLife + 60) / 60);
+    b.life = Math.min(fadeIn, fadeOut);
+
+    // Remove old bubbles
+    if (b.age > b.maxLife || b.y < -b.r * 3) {
+      bubbles.splice(i, 1);
+      continue;
+    }
+
+    drawBubble(b);
+  }
+
+  requestAnimationFrame(animate);
+}
+animate();
+
+/* ══════════════════════════════════
+   PAGE SWITCHING
+══════════════════════════════════ */
+function showLearn() {
+  document.getElementById('page-visualizer').style.display = 'none';
+  document.getElementById('page-learn').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showVisualizer() {
+  document.getElementById('page-learn').style.display = 'none';
+  document.getElementById('page-visualizer').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ══════════════════════════════════
+   LCS VISUALIZER LOGIC
+══════════════════════════════════ */
+const ALL_SAMPLES = [
+  { label:"Classic",    x:"ABCBDAB",  y:"BDCABA",   },
+  { label:"DNA",        x:"AGGTAB",   y:"GXTXAYB",  },
+  { label:"Short",      x:"ABCB",     y:"BDCAB",    },
+  { label:"Repeat",     x:"AABABAB",  y:"ABABABA",  },
+  { label:"Nums",       x:"12345678", y:"13578",    },
+  { label:"Palindrome", x:"ABCBA",    y:"AEBCB",    },
+  { label:"Disjoint",   x:"ABCD",     y:"WXYZ",     },
+  { label:"Prefix",     x:"HELLO",    y:"HELL",     },
+  { label:"Suffix",     x:"WORLD",    y:"ORLD",     },
+  { label:"Mix",        x:"STONE",    y:"LONGEST",  },
+  { label:"Tech",       x:"PYTHON",   y:"TYPHOON",  },
+  { label:"Full",       x:"ABCDEF",   y:"ABCDEF",   },
+];
+
+let X="", Y="", dp=[], arrows=[], steps=[], stepIdx=0, timer=null, paused=false, animating=false;
+// Snapshot store for going backward
+let snapshots = []; // snapshots[i] = cell state before step i was applied
+
+function pickSamples() {
+  return [...ALL_SAMPLES].sort(() => Math.random() - 0.5).slice(0, 6);
+}
+
+function buildSamples() {
+  const grid = document.getElementById('samplesGrid');
+  grid.innerHTML = '';
+  pickSamples().forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'sample-btn';
+    btn.innerHTML = `<span class="label">${s.label}</span><span class="strings">${s.x} / ${s.y}</span>`;
+    btn.onclick = () => {
+      document.getElementById('strX').value = s.x;
+      document.getElementById('strY').value = s.y;
+      startVisualization();
+    };
+    grid.appendChild(btn);
+  });
+}
+
+document.getElementById('speedSlider').oninput = function() {
+  document.getElementById('speedLabel').textContent = this.value + 'ms';
+};
+
+function computeLCS(x, y) {
+  const m = x.length, n = y.length;
+  const dp = Array.from({length: m+1}, () => new Array(n+1).fill(0));
+  const arrows = Array.from({length: m+1}, () => new Array(n+1).fill(''));
+  const steps = [];
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (x[i-1] === y[j-1]) {
+        dp[i][j] = dp[i-1][j-1] + 1;
+        arrows[i][j] = 'diag';
+        steps.push({ i, j, match: true, val: dp[i][j], msg: `X[${i}]='${x[i-1]}' == Y[${j}]='${y[j-1]}' → match! dp[${i}][${j}] = dp[${i-1}][${j-1}]+1 = ${dp[i][j]}` });
+      } else {
+        if (dp[i-1][j] >= dp[i][j-1]) {
+          dp[i][j] = dp[i-1][j];
+          arrows[i][j] = 'up';
+          steps.push({ i, j, match: false, val: dp[i][j], msg: `X[${i}]='${x[i-1]}' ≠ Y[${j}]='${y[j-1]}' → max(↑${dp[i-1][j]}, ←${dp[i][j-1]}) = ${dp[i][j]}, arrow ↑` });
+        } else {
+          dp[i][j] = dp[i][j-1];
+          arrows[i][j] = 'left';
+          steps.push({ i, j, match: false, val: dp[i][j], msg: `X[${i}]='${x[i-1]}' ≠ Y[${j}]='${y[j-1]}' → max(↑${dp[i-1][j]}, ←${dp[i][j-1]}) = ${dp[i][j]}, arrow ←` });
+        }
+      }
+    }
+  }
+  return { dp, arrows, steps };
+}
+
+function backtrack(dp, arrows, x, y) {
+  let i = x.length, j = y.length, path = [], lcs = '';
+  while (i > 0 && j > 0) {
+    path.push([i, j]);
+    if (arrows[i][j] === 'diag') { lcs = x[i-1] + lcs; i--; j--; }
+    else if (arrows[i][j] === 'up') i--;
+    else j--;
+  }
+  return { path, lcs };
+}
+
+function buildTables() {
+  const m = X.length, n = Y.length;
+  function makeTable(id, cls, cellFn) {
+    let html = `<table class="${cls}"><tr><th></th><th>ε</th>`;
+    for (let j = 0; j < n; j++) html += `<th>${Y[j]}</th>`;
+    html += '</tr><tr><th>ε</th>';
+    for (let j = 0; j <= n; j++) html += cellFn(0, j, 'zero');
+    html += '</tr>';
+    for (let i = 1; i <= m; i++) {
+      html += `<tr><th>${X[i-1]}</th>`;
+      for (let j = 0; j <= n; j++) html += cellFn(i, j, 'empty');
+      html += '</tr>';
+    }
+    html += '</table>';
+    document.getElementById(id).innerHTML = html;
+  }
+  makeTable('dpTableWrap', 'dp-table',
+    (i, j, t) => `<td id="dp_${i}_${j}" class="cell-${t}">0</td>`);
+  makeTable('arrTableWrap', 'arrow-table',
+    (i, j, t) => `<td id="ar_${i}_${j}" class="arr-empty">—</td>`);
+  for (let j = 0; j <= n; j++) {
+    const d = document.getElementById(`dp_0_${j}`);
+    if (d) d.className = 'cell-zero';
+  }
+  snapshots = [captureState()];
+}
+
+function captureState() {
+  // Capture all dp_ and ar_ cell class+text
+  const state = {};
+  const cells = document.querySelectorAll('[id^="dp_"],[id^="ar_"]');
+  cells.forEach(c => { state[c.id] = { cls: c.className, txt: c.textContent }; });
+  return {
+    cellState: state,
+    dpInfo: document.getElementById('stepInfoDp')?.textContent || '',
+    arInfo: document.getElementById('stepInfoArr')?.textContent || '',
+  };
+}
+
+function restoreState(snap) {
+  Object.entries(snap.cellState).forEach(([id, {cls, txt}]) => {
+    const el = document.getElementById(id);
+    if (el) { el.className = cls; el.textContent = txt; }
+  });
+  document.getElementById('stepInfoDp').textContent = snap.dpInfo;
+  document.getElementById('stepInfoArr').textContent = snap.arInfo;
+}
+
+function applyStep(s) {
+  const dpCell = document.getElementById(`dp_${s.i}_${s.j}`);
+  const arCell = document.getElementById(`ar_${s.i}_${s.j}`);
+  if (!dpCell) return;
+  dpCell.className = s.match ? 'cell-active cell-match' : 'cell-active';
+  dpCell.textContent = s.val;
+  if (arCell) {
+    arCell.textContent = arrows[s.i][s.j] === 'diag' ? '↖' : arrows[s.i][s.j] === 'up' ? '↑' : '←';
+    arCell.className = arrows[s.i][s.j] === 'diag' ? 'arr-diag' : arrows[s.i][s.j] === 'up' ? 'arr-up' : 'arr-left';
+    arCell.classList.add('arr-active');
+  }
+  document.getElementById('stepInfoDp').textContent = s.msg;
+  document.getElementById('stepInfoArr').textContent = `Arrow at [${s.i}][${s.j}]: ${arrows[s.i][s.j] === 'diag' ? '↖ diagonal (match)' : arrows[s.i][s.j] === 'up' ? '↑ up' : '← left'}`;
+  setTimeout(() => {
+    dpCell.className = s.match ? 'cell-match' : 'cell-filled';
+    if (arCell) arCell.classList.remove('arr-active');
+    // Save snapshot AFTER animation settles
+  }, 320);
+}
+
+function updateCounter() {
+  const total = steps.length;
+  const cur = Math.min(stepIdx, total);
+  document.getElementById('stepCur').textContent = cur;
+  document.getElementById('stepTotal').textContent = total;
+  document.getElementById('btnPrev').disabled = stepIdx <= 0;
+}
+
+function highlightPath(path) {
+  path.forEach(([i, j]) => {
+    const d = document.getElementById(`dp_${i}_${j}`);
+    const a = document.getElementById(`ar_${i}_${j}`);
+    if (d) d.className = 'cell-path';
+    if (a) a.className = 'arr-path';
+  });
+}
+
+function startVisualization() {
+  clearTimeout(timer);
+  paused = false; animating = false;
+  X = document.getElementById('strX').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  Y = document.getElementById('strY').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!X || !Y) { alert('Please enter both strings (letters/digits only).'); return; }
+  if (X.length > 14 || Y.length > 14) { alert('Max 14 characters each for clear visualization.'); return; }
+
+  const res = computeLCS(X, Y);
+  dp = res.dp; arrows = res.arrows; steps = res.steps; stepIdx = 0;
+
+  document.getElementById('matricesWrap').style.display = 'grid';
+  document.getElementById('resultBar').classList.add('hidden');
+  document.getElementById('complexitySection').style.display = 'none';
+  document.getElementById('stepCounter').style.display = '';
+  buildTables();
+  updateCounter();
+
+  document.getElementById('btnPause').disabled = false;
+  document.getElementById('btnStep').disabled = false;
+  document.getElementById('btnReset').disabled = false;
+  document.getElementById('btnPrev').disabled = true;
+  document.getElementById('btnPause').textContent = '⏸ Pause';
+  animating = true;
+  runAnimation();
+}
+
+function runAnimation() {
+  if (!animating) return;
+  if (paused) return;
+  if (stepIdx >= steps.length) { finishAnimation(); return; }
+  // Save snapshot before applying
+  snapshots[stepIdx] = captureState();
+  applyStep(steps[stepIdx]);
+  stepIdx++;
+  updateCounter();
+  const spd = parseInt(document.getElementById('speedSlider').value);
+  timer = setTimeout(runAnimation, spd);
+}
+
+function togglePause() {
+  if (!animating && stepIdx < steps.length) { animating = true; }
+  paused = !paused;
+  document.getElementById('btnPause').textContent = paused ? '▶ Resume' : '⏸ Pause';
+  if (!paused) runAnimation();
+}
+
+function stepForward() {
+  if (stepIdx >= steps.length) { finishAnimation(); return; }
+  clearTimeout(timer);
+  paused = true;
+  animating = true;
+  document.getElementById('btnPause').textContent = '▶ Resume';
+  snapshots[stepIdx] = captureState();
+  applyStep(steps[stepIdx]);
+  stepIdx++;
+  updateCounter();
+  if (stepIdx >= steps.length) setTimeout(finishAnimation, 400);
+}
+
+function stepBackward() {
+  if (stepIdx <= 0) return;
+  clearTimeout(timer);
+  paused = true;
+  animating = true;
+  document.getElementById('btnPause').textContent = '▶ Resume';
+  document.getElementById('resultBar').classList.add('hidden');
+  document.getElementById('complexitySection').style.display = 'none';
+  stepIdx--;
+  const snap = snapshots[stepIdx];
+  if (snap) restoreState(snap);
+  updateCounter();
+}
+
+function finishAnimation() {
+  animating = false;
+  paused = false;
+  clearTimeout(timer);
+  document.getElementById('btnPause').textContent = '⏸ Pause';
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnStep').disabled = true;
+  const { path, lcs } = backtrack(dp, arrows, X, Y);
+  setTimeout(() => highlightPath(path), 400);
+  const m = X.length, n = Y.length;
+  document.getElementById('resLen').textContent = dp[m][n];
+  document.getElementById('resStr').textContent = lcs || '(none)';
+  document.getElementById('resM').textContent = m;
+  document.getElementById('resN').textContent = n;
+  document.getElementById('resCells').textContent = m * n;
+  document.getElementById('thisRunCells').textContent = `${m}×${n} = ${m * n}`;
+  document.getElementById('resultBar').classList.remove('hidden');
+  document.getElementById('complexitySection').style.display = 'block';
+  document.getElementById('stepInfoDp').textContent = `✅ Done! LCS = "${lcs || '(none)'}" (length ${dp[m][n]}). Gold cells = optimal path.`;
+  document.getElementById('stepInfoArr').textContent = `↖ arrows trace the LCS path. Follow gold cells from bottom-right to top-left.`;
+  updateCounter();
+}
+
+function resetAll() {
+  clearTimeout(timer);
+  paused = false; animating = false; stepIdx = 0;
+  snapshots = [];
+  document.getElementById('matricesWrap').style.display = 'none';
+  document.getElementById('resultBar').classList.add('hidden');
+  document.getElementById('complexitySection').style.display = 'none';
+  document.getElementById('stepCounter').style.display = 'none';
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnStep').disabled = true;
+  document.getElementById('btnPrev').disabled = true;
+  document.getElementById('btnReset').disabled = true;
+  document.getElementById('btnPause').textContent = '⏸ Pause';
+  document.getElementById('stepInfoDp').textContent = 'Press ▶ Visualize to begin';
+  document.getElementById('stepInfoArr').textContent = 'Arrows appear as cells are computed';
+}
+
+buildSamples();
+</script>
+</body>
+</html>
